@@ -4,27 +4,27 @@ from enum import Enum
 import re
 
 
-class Tokenizer(events.EventSource):
+class _Tokenizer(events.EventSource):
     token_ids = [('{', 'lbrace'), ('}', 'rbrace'), ('[', 'lsquare'), (']', 'rsquare'), (',', 'comma'), (':', 'colon'),
                  ('"', 'dblquote'), (' ', 'whitespace'), ('\n', 'newline'), ('\\', 'backslash')]
     char = 'char'
 
     def __init__(self):
-        super(Tokenizer, self).__init__()
+        super(_Tokenizer, self).__init__()
 
     def consume(self, data):
         for c in data:
             found = False
-            for each in Tokenizer.token_ids:
+            for each in _Tokenizer.token_ids:
                 if c == each[0]:
                     found = True
                     self.fire(each[1], each[0])
                     break
             if not found:
-                self.fire(Tokenizer.char, c)
+                self.fire(_Tokenizer.char, c)
 
 
-class TextAccumulator(events.EventSource):
+class _TextAccumulator(events.EventSource):
     """
     Combines characters to form words, handles escaping
     """
@@ -32,18 +32,18 @@ class TextAccumulator(events.EventSource):
     _escape_char = "backslash"
 
     def __init__(self):
-        super(TextAccumulator, self).__init__()
+        super(_TextAccumulator, self).__init__()
         self._ = ""
         self._escaping = False
 
     def _listener(self, event_name, payload):
-        if event_name == TextAccumulator._criteria:
+        if event_name == _TextAccumulator._criteria:
             if self._escaping:
                 self._ += "\\"
                 self._escaping = False
             self._ += payload
         else:
-            if event_name == TextAccumulator._escape_char:
+            if event_name == _TextAccumulator._escape_char:
                 if self._escaping:  # already escaping - hence we are escaping a backslash
                     self._ += "\\\\"
                     self._escaping = False
@@ -70,16 +70,16 @@ class TextAccumulator(events.EventSource):
     def bind(self, lexer):
         lexer.add_catch_all_listener(self._listener)
 
-JSONValueType = Enum('JSONValueType', 'STRING NUMBER BOOLEAN NULL')
+
+JSONLiteralType = Enum('JSONValueType', 'STRING NUMBER BOOLEAN NULL')
 
 
-class Lexer(events.EventSource):
+class _Lexer(events.EventSource):
     _number_pattern = re.compile("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$")
     _true = 'true'
     _false = 'false'
     _null = 'null'
-    _key = 'KEY'
-    _value = 'VALUE'
+    _literal = 'LITERAL'
 
     _s_new = 'new'
     _s_doc_start = 'doc_start'
@@ -111,28 +111,28 @@ class Lexer(events.EventSource):
     _e_backslash = 'backslash'
 
     def __init__(self):
-        super(Lexer, self).__init__()
+        super(_Lexer, self).__init__()
         self._started = False  # TODO reset this on 'reset' event at doc_end
-        self._lexer = Tokenizer()
+        self._lexer = _Tokenizer()
         self._lexer.add_catch_all_listener(self._catch_all)
-        self._text_accumulator = TextAccumulator()
+        self._text_accumulator = _TextAccumulator()
         self._text_accumulator.bind(self._lexer)
         self._setup_state_machine()
 
     def _setup_state_machine(self):
-        new = State(Lexer._s_new)
-        doc_start = State(Lexer._s_doc_start)
-        doc_end = State(Lexer._s_doc_end)
-        object_start = State(Lexer._s_o_start)
-        object_end = State(Lexer._s_o_end)
-        array_start = State(Lexer._s_a_start)
-        array_end = State(Lexer._s_a_end)
-        key_escaping = State(Lexer._k_escaping)
-        string_start = State(Lexer._s_s_start)
-        string_end = State(Lexer._s_s_end)
-        literal = State(Lexer._s_literal)
-        more = State(Lexer._s_more)
-        string_escaping = State(Lexer._s_escaping)
+        new = State(_Lexer._s_new)
+        doc_start = State(_Lexer._s_doc_start)
+        doc_end = State(_Lexer._s_doc_end)
+        object_start = State(_Lexer._s_o_start)
+        object_end = State(_Lexer._s_o_end)
+        array_start = State(_Lexer._s_a_start)
+        array_end = State(_Lexer._s_a_end)
+        key_escaping = State(_Lexer._k_escaping)
+        string_start = State(_Lexer._s_s_start)
+        string_end = State(_Lexer._s_s_end)
+        literal = State(_Lexer._s_literal)
+        more = State(_Lexer._s_more)
+        string_escaping = State(_Lexer._s_escaping)
 
         e_start = Event('start')
         e_end = Event('end')
@@ -224,7 +224,7 @@ class Lexer(events.EventSource):
 
         self._state_machine = StateMachine(new)
         self._state_machine.add_states(new, doc_start, doc_end, object_start, object_end, array_start, array_end,
-                                        key_escaping, literal, string_start, string_end, more)
+                                       key_escaping, literal, string_start, string_end, more)
         self._state_machine.add_listener('before_state_change', self._on_before_state_change)
         self._state_machine.add_listener('after_state_change', self._on_after_state_change)
         self._state_machine.add_listener('error', self._on_error)
@@ -237,28 +237,31 @@ class Lexer(events.EventSource):
 
     def _on_after_state_change(self, previous_state, event, new_state):
         # TODO reorder new_state by probability for perf
-        #print("{} - {} - {}".format(previous_state.name, event.name, new_state.name))
+        # print("{} - {} - {}".format(previous_state.name, event.name, new_state.name))
 
-        if new_state.equals(Lexer._s_s_end):
+        if new_state.equals(_Lexer._s_s_end):
             text = self._text_accumulator.pop()
-            self.fire(Lexer._value, JSONValueType.STRING, text)
+            self.fire(_Lexer._literal, JSONLiteralType.STRING, text)
 
-        if previous_state.equals(Lexer._s_literal) and not new_state.equals(Lexer._s_literal):
+        if previous_state.equals(_Lexer._s_literal) and not new_state.equals(_Lexer._s_literal):
             literal = self._text_accumulator.pop()
-            if re.fullmatch(Lexer._number_pattern, literal):
-                self.fire(Lexer._value, JSONValueType.NUMBER, literal)
-            elif literal == Lexer._true:
-                self.fire(Lexer._value, JSONValueType.BOOLEAN, True)
-            elif literal == Lexer._false:
-                self.fire(Lexer._value, JSONValueType.BOOLEAN, False)
-            elif literal == Lexer._null:
-                self.fire(Lexer._value, JSONValueType.NULL, None)
+            if re.fullmatch(_Lexer._number_pattern, literal):
+                self.fire(_Lexer._literal, JSONLiteralType.NUMBER, literal)
+            elif literal == _Lexer._true:
+                self.fire(_Lexer._literal, JSONLiteralType.BOOLEAN, True)
+            elif literal == _Lexer._false:
+                self.fire(_Lexer._literal, JSONLiteralType.BOOLEAN, False)
+            elif literal == _Lexer._null:
+                self.fire(_Lexer._literal, JSONLiteralType.NULL, None)
             else:
                 raise RuntimeError("Invalid Literal {}".format(literal))
 
-        if new_state.equals(Lexer._s_doc_start, Lexer._s_doc_end, Lexer._s_o_start,
-                            Lexer._s_o_end, Lexer._s_a_start, Lexer._s_a_end):
+        if new_state.equals(_Lexer._s_doc_start, _Lexer._s_doc_end, _Lexer._s_o_start,
+                            _Lexer._s_o_end, _Lexer._s_a_start, _Lexer._s_a_end):
             self.fire(new_state.name)
+        if new_state.equals(_Lexer._s_doc_end):
+            self._state_machine.consume(Event('reset'))
+            self._started = False
 
     def _catch_all(self, event_name, payload):
         e = Event(event_name, payload)
@@ -266,10 +269,108 @@ class Lexer(events.EventSource):
 
     def consume(self, data):
         if not self._started:
+            self._started = True
             self._state_machine.consume(Event('start'))
         self._lexer.consume(data)
 
-def test_basic_case():
+
+JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
+
+
+class JSONStreamer(events.EventSource):
+    _key = "key"
+    _value = "value"
+    _item = "item"
+
+    def __init__(self):
+        super(JSONStreamer, self).__init__()
+        self._lexer = _Lexer()
+        self._lexer.auto_listen(self)
+        self._stack = []
+        self._pending_value = False
+
+
+    def _on_doc_start(self):
+        self.fire(_Lexer._s_doc_start)
+
+    def _on_doc_end(self):
+        self.fire(_Lexer._s_doc_end)
+
+    def _on_object_start(self):
+        self._stack.append(JSONCompositeType.OBJECT)
+        self.fire(_Lexer._s_o_start)
+
+    def _on_object_end(self):
+        self._stack.pop()
+        self._pending_value = False
+        self.fire(_Lexer._s_o_end)
+
+    def _on_array_start(self):
+        self._stack.append(JSONCompositeType.ARRAY)
+        self.fire(_Lexer._s_a_start)
+
+    def _on_array_end(self):
+        self._stack.pop()
+        self.fire(_Lexer._s_a_end)
+
+    def _on_literal(self, json_value_type, value):
+        top = self._stack[-1]
+        if top is JSONCompositeType.OBJECT:
+            if self._pending_value:
+                self._pending_value = False
+                self.fire(JSONStreamer._value, value)
+            else:
+                # must be a key
+                assert (json_value_type is JSONLiteralType.STRING)
+                self._pending_value = True
+                self.fire(JSONStreamer._key, value)
+        elif top is JSONCompositeType.ARRAY:
+            self.fire(JSONStreamer._item, value)
+
+
+    def consume(self, data):
+        self._lexer.consume(data)
+
+
+class ObjectStreamer(events.EventSource):
+    """
+    For a JSON object it streams all complete keys/value pairs
+    For a JSON array it streams all complete values
+    """
+    def __init__(self):
+        super(ObjectStreamer, self).__init__()
+        self._streamer = JSONStreamer()
+        self._streamer.auto_listen(self)
+
+    def _on_doc_start(self):
+        pass
+
+    def _on_doc_end(self):
+        pass
+
+    def _on_object_start(self):
+        pass
+
+    def _on_object_end(self):
+        pass
+
+    def _on_array_start(self):
+        pass
+
+    def _on_array_end(self):
+        pass
+
+    def _on_key(self, key):
+        pass
+
+    def _on_value(self, value):
+        pass
+
+    def _on_item(self, item):
+        pass
+
+
+def test_lexer_basic():
     json_input = """
     {" employees":[
     {"firstName":"Jo:hn", "lastName":"Doe,Foe"},
@@ -279,11 +380,60 @@ def test_basic_case():
     745
     ]}
     """
+
     def _catch_all(event_name, *args):
         print('>> {} : {}'.format(event_name, args))
-    streamer = Lexer()
+
+    lexer = _Lexer()
+    lexer.add_catch_all_listener(_catch_all)
+    lexer.consume(json_input[0:20])
+    lexer.consume(json_input[20:])
+    return True
+
+
+def test_streamer_basic():
+    json_input = """
+    {" employees":[
+    {"firstName":"Jo:hn", "lastName":"Doe,Foe"},
+    {"firstName":"An\\"na", "lastName":"Smith Jack"},
+    {"firstName":"Peter", "lastName":"Jones"},
+    true,
+    745
+    ]}
+    """
+
+    def _catch_all(event_name, *args):
+        print('>> {} : {}'.format(event_name, args))
+
+    streamer = JSONStreamer()
     streamer.add_catch_all_listener(_catch_all)
-    streamer.consume(json_input)
+    streamer.consume(json_input[0:20])
+    streamer.consume(json_input[20:])
+    return True
+
+
+def test_lexer_nested():
+    json_n = """{"a":8, "b": {"c": {"d":9}}, "e":{"f":{"g":10, "h":[1,2,3]}}, "f":11}"""
+
+    def _catch_all(event_name, *args):
+        print('>> {} : {}'.format(event_name, args))
+
+    lexer = _Lexer()
+    lexer.add_catch_all_listener(_catch_all)
+    lexer.consume(json_n)
+    return True
+
+
+def test_streamer_nested():
+    json_n = """{"a":8, "b": {"c": {"d":9}}, "e":{"f":{"g":10, "h":[1,2,3]}}, "i":11}"""
+
+    def _catch_all(event_name, *args):
+        print('JSONStreamer>> {} : {}'.format(event_name, args))
+
+    streamer = JSONStreamer()
+    streamer.add_catch_all_listener(_catch_all)
+    streamer.consume(json_n)
+    return True
 
 
 if __name__ == '__main__':

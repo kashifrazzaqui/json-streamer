@@ -208,7 +208,7 @@ class State:
         """
         handle failure/error processing for event
         """
-        msg = "Faulty event {0} was received by state {1}".format(event.name, self.name)
+        msg = "Faulty event '{}' with payload '{}' was received by state '{}'".format(event.name, event.payload, self.name)
         raise RuntimeError(msg)
 
     def equals(self, *args):

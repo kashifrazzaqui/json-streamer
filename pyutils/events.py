@@ -2,6 +2,7 @@ class ListenerRegister(object):
     def __init__(self):
         self._register = {}
         self._catch_alls = set()
+        self._observers = {}
 
     def add_listener(self, event, listener):
         event = event.upper()
@@ -11,6 +12,9 @@ class ListenerRegister(object):
 
     def add_catch_all_listener(self, listener):
         self._catch_alls.add(listener)
+
+    def auto_listen(self, observer, prefix="_on_"):
+        self._observers[observer] = prefix
 
     def remove_listener(self, event, listener):
         event = event.upper()
@@ -34,13 +38,18 @@ class ListenerRegister(object):
 
 
 class EventSource(ListenerRegister):
-
     def __init__(self):
         super(EventSource, self).__init__()
 
     def fire(self, event, *args, **kwargs):
         for each in self.get_listeners(event):
             each(*args, **kwargs)
+
+        for observer, prefix in self._observers.items():
+            l = getattr(observer, prefix + str(event).lower(), False)
+            if l and callable(l):
+                l(*args, **kwargs)
+
         for each in self.get_catch_all_listeners():
             each(event, *args, **kwargs)
 
@@ -70,6 +79,7 @@ def demo():
 
     t.add_catch_all_listener(catchy)
     t.event_occurs()  # when the event is fired in this method, the listener is informed
+
 
 if __name__ == '__main__':
     demo()
