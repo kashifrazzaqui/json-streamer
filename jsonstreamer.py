@@ -1,5 +1,6 @@
-from pyutils import events
-from pyutils.statemachine import StateMachine, State, Event
+from again import events
+from again.statemachine import StateMachine, State, Event
+from again.decorate import log
 from enum import Enum
 import re
 
@@ -237,7 +238,6 @@ class _Lexer(events.EventSource):
 
     def _on_after_state_change(self, previous_state, event, new_state):
         # TODO reorder new_state by probability for perf
-        # print("{} - {} - {}".format(previous_state.name, event.name, new_state.name))
 
         if new_state.equals(_Lexer._s_s_end):
             text = self._text_accumulator.pop()
@@ -278,9 +278,15 @@ JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
 
 
 class JSONStreamer(events.EventSource):
-    _key = "key"
-    _value = "value"
-    _item = "item"
+    DOC_START_EVENT = 'doc_start'
+    DOC_END_EVENT = 'doc_end'
+    OBJECT_START_EVENT = 'object_start'
+    OBJECT_END_EVENT = 'object_end'
+    ARRAY_START_EVENT = 'array_start'
+    ARRAY_END_EVENT = 'array_end'
+    KEY_EVENT = 'key'
+    VALUE_EVENT = 'value'
+    ELEMENT_EVENT = 'element'
 
     def __init__(self):
         super(JSONStreamer, self).__init__()
@@ -291,41 +297,42 @@ class JSONStreamer(events.EventSource):
 
 
     def _on_doc_start(self):
-        self.fire(_Lexer._s_doc_start)
+        self.fire(JSONStreamer.DOC_START_EVENT)
 
     def _on_doc_end(self):
-        self.fire(_Lexer._s_doc_end)
+        self.fire(JSONStreamer.DOC_END_EVENT)
 
     def _on_object_start(self):
         self._stack.append(JSONCompositeType.OBJECT)
-        self.fire(_Lexer._s_o_start)
+        self._pending_value = False  # NEW
+        self.fire(JSONStreamer.OBJECT_START_EVENT)
 
     def _on_object_end(self):
         self._stack.pop()
         self._pending_value = False
-        self.fire(_Lexer._s_o_end)
+        self.fire(JSONStreamer.OBJECT_END_EVENT)
 
     def _on_array_start(self):
         self._stack.append(JSONCompositeType.ARRAY)
-        self.fire(_Lexer._s_a_start)
+        self.fire(JSONStreamer.ARRAY_START_EVENT)
 
     def _on_array_end(self):
         self._stack.pop()
-        self.fire(_Lexer._s_a_end)
+        self.fire(JSONStreamer.ARRAY_END_EVENT)
 
     def _on_literal(self, json_value_type, value):
         top = self._stack[-1]
         if top is JSONCompositeType.OBJECT:
             if self._pending_value:
                 self._pending_value = False
-                self.fire(JSONStreamer._value, value)
+                self.fire(JSONStreamer.VALUE_EVENT, value)
             else:
                 # must be a key
                 assert (json_value_type is JSONLiteralType.STRING)
                 self._pending_value = True
-                self.fire(JSONStreamer._key, value)
+                self.fire(JSONStreamer.KEY_EVENT, value)
         elif top is JSONCompositeType.ARRAY:
-            self.fire(JSONStreamer._item, value)
+            self.fire(JSONStreamer.ELEMENT_EVENT, value)
 
 
     def consume(self, data):
@@ -337,38 +344,139 @@ class ObjectStreamer(events.EventSource):
     For a JSON object it streams all complete keys/value pairs
     For a JSON array it streams all complete values
     """
+    OBJECT_STREAM_START_EVENT = 'object_stream_start'
+    OBJECT_STREAM_END_EVENT = 'object_stream_end'
+    ARRAY_STREAM_START_EVENT = 'array_stream_start'
+    ARRAY_STREAM_END_EVENT = 'array_stream_end'
+    PAIR_EVENT = 'pair'
+    ELEMENT_EVENT = 'element'
+
     def __init__(self):
         super(ObjectStreamer, self).__init__()
         self._streamer = JSONStreamer()
         self._streamer.auto_listen(self)
 
     def _on_doc_start(self):
-        pass
+        self._root = None
+        self._obj_stack = []
+        self._key_stack = []
 
     def _on_doc_end(self):
         pass
 
     def _on_object_start(self):
-        pass
+        if self._root is None:
+            self._root = JSONCompositeType.OBJECT
+            self.fire(ObjectStreamer.OBJECT_STREAM_START_EVENT)
+        else:
+            d = {}
+            self._obj_stack.append(d)
+
+    def _process_deep_entities(self):
+        o = self._obj_stack.pop()
+        key_depth = len(self._key_stack)
+        if key_depth is 0:
+            if len(self._obj_stack) is 0:
+                self.fire(ObjectStreamer.ELEMENT_EVENT, o)
+            else:
+                self._obj_stack[-1].append(o)
+        elif key_depth is 1:
+            if len(self._obj_stack) is 0:
+                k = self._key_stack.pop()
+                self.fire(ObjectStreamer.PAIR_EVENT, (k, o))
+            else:
+                top = self._obj_stack[-1]
+                if isinstance(top, list):
+                    top.append(o)
+                else:
+                    k = self._key_stack.pop()
+                    top[k] = o
+        elif key_depth > 1:
+            k = self._key_stack.pop()
+            self._obj_stack[-1][k] = o
 
     def _on_object_end(self):
-        pass
+        if len(self._obj_stack) > 0:
+            self._process_deep_entities()
+        else:
+            self.fire(ObjectStreamer.OBJECT_STREAM_END_EVENT)
 
     def _on_array_start(self):
-        pass
+        if self._root is None:
+            self._root = JSONCompositeType.ARRAY
+            self.fire('array_stream_start')
+        else:
+            self._obj_stack.append(list())
 
     def _on_array_end(self):
-        pass
+        if len(self._obj_stack) > 0:
+            self._process_deep_entities()
+        else:
+            self.fire(ObjectStreamer.ARRAY_STREAM_END_EVENT)
 
     def _on_key(self, key):
-        pass
+        self._key_stack.append(key)
 
     def _on_value(self, value):
-        pass
+        k = self._key_stack.pop()
+        if len(self._obj_stack) is 0:
+            self.fire(ObjectStreamer.PAIR_EVENT, (k, value))
+        else:
+            self._obj_stack[-1][k] = value
 
-    def _on_item(self, item):
-        pass
+    def _on_element(self, item):
+        if len(self._obj_stack) is 0:
+            self.fire('element', item)
+        else:
+            self._obj_stack[-1].append(item)
 
+    def consume(self, data):
+        self._streamer.consume(data)
+
+def test_obj_streamer_array():
+    json_array = """["a",2,true,{"apple":"fruit"}]"""
+    test_obj_streamer_array.counter = 0
+
+    def _catch_all(event_name, *args):
+        test_obj_streamer_array.counter += 1
+
+    streamer = ObjectStreamer()
+    streamer.add_catch_all_listener(_catch_all)
+    streamer.consume(json_array)
+    return test_obj_streamer_array.counter is 6
+
+
+def test_obj_streamer_object():
+    json_input = """
+    {" employees":[
+    {"firstName":"Jo:hn", "lastName":"Doe,Foe"},
+    {"firstName":"An\\"na", "lastName":"Smith Jack"},
+    {"firstName":"Peter", "lastName":"Jones"},
+    true,
+    745
+    ]}
+    """
+    test_obj_streamer_object.counter = 0
+
+    def _catch_all(event_name, *args):
+        test_obj_streamer_object.counter += 1
+
+    obj_streamer = ObjectStreamer()
+    obj_streamer.add_catch_all_listener(_catch_all)
+    obj_streamer.consume(json_input)
+    return test_obj_streamer_object.counter is 3
+
+def test_obj_streamer_object_nested():
+    json_n = """{"a":8, "b": {"c": {"d":9}}, "e":{"f":{"g":10, "h":[1,2,3]}}, "i":11}"""
+    test_obj_streamer_object_nested.counter = 0
+
+    def _catch_all(event_name, *args):
+        test_obj_streamer_object_nested.counter += 1
+
+    obj_streamer = ObjectStreamer()
+    obj_streamer.add_catch_all_listener(_catch_all)
+    obj_streamer.consume(json_n)
+    return test_obj_streamer_object_nested.counter is 6
 
 def test_lexer_basic():
     json_input = """
@@ -380,15 +488,16 @@ def test_lexer_basic():
     745
     ]}
     """
+    test_lexer_basic.counter = 0
 
     def _catch_all(event_name, *args):
-        print('>> {} : {}'.format(event_name, args))
+        test_lexer_basic.counter += 1
 
     lexer = _Lexer()
     lexer.add_catch_all_listener(_catch_all)
     lexer.consume(json_input[0:20])
     lexer.consume(json_input[20:])
-    return True
+    return test_lexer_basic.counter is 26
 
 
 def test_streamer_basic():
@@ -401,42 +510,59 @@ def test_streamer_basic():
     745
     ]}
     """
+    test_streamer_basic.counter = 0
 
     def _catch_all(event_name, *args):
-        print('>> {} : {}'.format(event_name, args))
+        test_streamer_basic.counter += 1
 
     streamer = JSONStreamer()
     streamer.add_catch_all_listener(_catch_all)
     streamer.consume(json_input[0:20])
     streamer.consume(json_input[20:])
-    return True
+    return test_streamer_basic.counter is 26
 
 
 def test_lexer_nested():
     json_n = """{"a":8, "b": {"c": {"d":9}}, "e":{"f":{"g":10, "h":[1,2,3]}}, "f":11}"""
+    test_lexer_nested.counter = 0
 
     def _catch_all(event_name, *args):
-        print('>> {} : {}'.format(event_name, args))
+        test_lexer_nested.counter += 1
 
     lexer = _Lexer()
     lexer.add_catch_all_listener(_catch_all)
     lexer.consume(json_n)
-    return True
+    return test_lexer_nested.counter is 29
 
 
 def test_streamer_nested():
     json_n = """{"a":8, "b": {"c": {"d":9}}, "e":{"f":{"g":10, "h":[1,2,3]}}, "i":11}"""
 
+    test_streamer_nested.counter = 0
+
     def _catch_all(event_name, *args):
-        print('JSONStreamer>> {} : {}'.format(event_name, args))
+        test_streamer_nested.counter += 1
 
     streamer = JSONStreamer()
     streamer.add_catch_all_listener(_catch_all)
     streamer.consume(json_n)
-    return True
+    return test_streamer_nested.counter is 29
+
+
+def test_streamer_array():
+    json_array = """["a",2,true,{"apple":"fruit"}]"""
+    test_streamer_array.counter = 0
+
+    def _catch_all(event_name, *args):
+        test_streamer_array.counter += 1
+
+    streamer = JSONStreamer()
+    streamer.add_catch_all_listener(_catch_all)
+    streamer.consume(json_array)
+    return test_streamer_array.counter is 10
 
 
 if __name__ == '__main__':
-    from pyutils.testrunner import run_tests
+    from again.testrunner import run_tests
 
     run_tests('jsonstreamer.py', globals())
