@@ -30,7 +30,9 @@ class _TextAccumulator(events.EventSource):
     Combines characters to form words, handles escaping
     """
     _criteria = 'char'
-    _escape_char = "backslash"
+    _escape_char = 'backslash'
+    _escaped_bslash = '\\'
+    _escaped_dbl_bslash = '\\\\'
 
     def __init__(self):
         super(_TextAccumulator, self).__init__()
@@ -40,19 +42,19 @@ class _TextAccumulator(events.EventSource):
     def _listener(self, event_name, payload):
         if event_name == _TextAccumulator._criteria:
             if self._escaping:
-                self._ += "\\"
+                self._ += _TextAccumulator._escaped_bslash
                 self._escaping = False
             self._ += payload
         else:
             if event_name == _TextAccumulator._escape_char:
                 if self._escaping:  # already escaping - hence we are escaping a backslash
-                    self._ += "\\\\"
+                    self._ += _TextAccumulator._escaped_dbl_bslash
                     self._escaping = False
                 else:
                     self._escaping = True
             else:
                 if self._escaping:
-                    self._ += "\\"
+                    self._ += _TextAccumulator._escaped_bslash
                     self._ += payload
                     self._escaping = False
 
