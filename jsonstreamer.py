@@ -115,7 +115,7 @@ class _Lexer(events.EventSource):
 
     def __init__(self):
         super(_Lexer, self).__init__()
-        self._started = False  # TODO reset this on 'reset' event at doc_end
+        self._started = False
         self._tokenizer = _Tokenizer()
         self._tokenizer.add_catch_all_listener(self._catch_all)
         self._text_accumulator = _TextAccumulator()
@@ -174,7 +174,6 @@ class _Lexer(events.EventSource):
         object_start.faulty(e_start, e_end, e_lsquare, e_rsquare, e_comma, e_colon, e_backslash)
 
         object_end.on(e_end, doc_end)
-        # TODO check to see if braces are balanced
         object_end.loops(e_lbrace, e_rbrace)
         object_end.on(e_rsquare, array_end)
         object_end.on(e_comma, more)
@@ -274,8 +273,16 @@ class _Lexer(events.EventSource):
     def consume(self, data):
         if not self._started:
             self._started = True
-            self._state_machine.consume(Event('start'))
+            self._state_machine.consume(Event(_Lexer._e_start))
         self._tokenizer.consume(data)
+
+    def close(self):
+        if self._started:
+            self._state_machine.consume(Event(_Lexer._e_end))
+            self._started = False
+            self._tokenizer = None
+            self._text_accumulator = None
+            self._state_machine = None
 
 
 JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
@@ -343,6 +350,8 @@ class JSONStreamer(events.EventSource):
 
     def close(self):
         self._lexer.close()
+        self._lexer = None
+        self._stack = None
 
 
 class ObjectStreamer(events.EventSource):
@@ -441,6 +450,7 @@ class ObjectStreamer(events.EventSource):
 
     def close(self):
         self._streamer.close()
+        self._streamer = None
 
 
 def test_obj_streamer_array():
