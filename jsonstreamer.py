@@ -29,7 +29,7 @@ class _TextAccumulator(events.EventSource):
     """
     Combines characters to form words, handles escaping
     """
-    _criteria = 'char'
+    _criteria = ['char', 'whitespace', 'dblquote']
     _escape_char = 'backslash'
     _escaped_bslash = '\\'
     _escaped_dbl_bslash = '\\\\'
@@ -40,7 +40,7 @@ class _TextAccumulator(events.EventSource):
         self._escaping = False
 
     def _listener(self, event_name, payload):
-        if event_name == _TextAccumulator._criteria:
+        if event_name in _TextAccumulator._criteria:
             if self._escaping:
                 self._ += _TextAccumulator._escaped_bslash
                 self._escaping = False
@@ -242,14 +242,15 @@ class _Lexer(events.EventSource):
     def _on_after_state_change(self, previous_state, event, new_state):
         # TODO reorder new_state by probability for perf
 
-        if new_state.equals(_Lexer._s_s_end):
-            text = self._text_accumulator.pop()
+        if previous_state.equals(_Lexer._s_s_end):
+            text = self._text_accumulator.pop().lstrip()
+            text = text[1:-1] #remove surrounding double quotes
             self.fire(_Lexer._literal, JSONLiteralType.STRING, text)
 
         if previous_state.equals(_Lexer._s_literal) and not new_state.equals(_Lexer._s_literal):
-            literal = self._text_accumulator.pop()
+            literal = self._text_accumulator.pop().strip()
             if re.fullmatch(_Lexer._number_pattern, literal):
-                self.fire(_Lexer._literal, JSONLiteralType.NUMBER, literal)
+                self.fire(_Lexer._literal, JSONLiteralType.NUMBER, int(literal))
             elif literal == _Lexer._true:
                 self.fire(_Lexer._literal, JSONLiteralType.BOOLEAN, True)
             elif literal == _Lexer._false:
@@ -454,37 +455,46 @@ class ObjectStreamer(events.EventSource):
 
 
 def test_obj_streamer_array():
+    import json
+
     json_array = """["a",2,true,{"apple":"fruit"}]"""
     test_obj_streamer_array.counter = 0
+    j = json.loads(json_array)
 
     def _catch_all(event_name, *args):
-        test_obj_streamer_array.counter += 1
+        if event_name == 'element':
+            assert j[test_obj_streamer_array.counter] == args[0]
+            test_obj_streamer_array.counter += 1
+
 
     streamer = ObjectStreamer()
     streamer.add_catch_all_listener(_catch_all)
     streamer.consume(json_array)
-    return test_obj_streamer_array.counter is 6
+    return len(j) == test_obj_streamer_array.counter
 
 
 def test_obj_streamer_object():
+    import json
     json_input = """
     {" employees":[
-    {"firstName":"Jo:hn", "lastName":"Doe,Foe"},
+    {"first Name":"Jo:hn", "lastName":"Doe,Foe"},
     {"firstName":"An\\"na", "lastName":"Smith Jack"},
     {"firstName":"Peter", "lastName":"Jones"},
     true,
     745
     ]}
     """
-    test_obj_streamer_object.counter = 0
+    j = json.loads(json_input)
 
     def _catch_all(event_name, *args):
-        test_obj_streamer_object.counter += 1
+        if event_name == 'pair':
+            k, v = args[0]
+            assert type(j[k]) == type(v)
 
     obj_streamer = ObjectStreamer()
     obj_streamer.add_catch_all_listener(_catch_all)
     obj_streamer.consume(json_input)
-    return test_obj_streamer_object.counter is 3
+    return True
 
 
 def test_obj_streamer_object_nested():
