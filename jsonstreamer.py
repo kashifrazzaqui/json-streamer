@@ -244,13 +244,17 @@ class _Lexer(events.EventSource):
 
         if previous_state.equals(_Lexer._s_s_end):
             text = self._text_accumulator.pop().lstrip()
-            text = text[1:-1] #remove surrounding double quotes
+            text = text[1:-1]  # remove surrounding double quotes
             self.fire(_Lexer._literal, JSONLiteralType.STRING, text)
 
         if previous_state.equals(_Lexer._s_literal) and not new_state.equals(_Lexer._s_literal):
             literal = self._text_accumulator.pop().strip()
             if re.fullmatch(_Lexer._number_pattern, literal):
-                self.fire(_Lexer._literal, JSONLiteralType.NUMBER, int(literal))
+                try:
+                    i = int(literal)
+                except ValueError:
+                    i = float(literal)
+                self.fire(_Lexer._literal, JSONLiteralType.NUMBER, i)
             elif literal == _Lexer._true:
                 self.fire(_Lexer._literal, JSONLiteralType.BOOLEAN, True)
             elif literal == _Lexer._false:
