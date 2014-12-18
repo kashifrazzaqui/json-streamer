@@ -116,10 +116,10 @@ class _Lexer(events.EventSource):
     def __init__(self):
         super(_Lexer, self).__init__()
         self._started = False  # TODO reset this on 'reset' event at doc_end
-        self._lexer = _Tokenizer()
-        self._lexer.add_catch_all_listener(self._catch_all)
+        self._tokenizer = _Tokenizer()
+        self._tokenizer.add_catch_all_listener(self._catch_all)
         self._text_accumulator = _TextAccumulator()
-        self._text_accumulator.bind(self._lexer)
+        self._text_accumulator.bind(self._tokenizer)
         self._setup_state_machine()
 
     def _setup_state_machine(self):
@@ -137,20 +137,20 @@ class _Lexer(events.EventSource):
         more = State(_Lexer._s_more)
         string_escaping = State(_Lexer._s_escaping)
 
-        e_start = Event('start')
-        e_end = Event('end')
-        e_reset = Event('reset')
-        e_lbrace = Event('lbrace')
-        e_rbrace = Event('rbrace')
-        e_lsquare = Event('lsquare')
-        e_rsquare = Event('rsquare')
-        e_char = Event('char')
-        e_comma = Event('comma')
-        e_colon = Event('colon')
-        e_dblquote = Event('dblquote')
-        e_whitespace = Event('whitespace')
-        e_newline = Event('newline')
-        e_backslash = Event('backslash')
+        e_start = Event(_Lexer._e_start)
+        e_end = Event(_Lexer._e_end)
+        e_reset = Event(_Lexer._e_reset)
+        e_lbrace = Event(_Lexer._e_lbrace)
+        e_rbrace = Event(_Lexer._e_rbrace)
+        e_lsquare = Event(_Lexer._e_lsquare)
+        e_rsquare = Event(_Lexer._e_rsquare)
+        e_char = Event(_Lexer._e_char)
+        e_comma = Event(_Lexer._e_comma)
+        e_colon = Event(_Lexer._e_colon)
+        e_dblquote = Event(_Lexer._e_dblquote)
+        e_whitespace = Event(_Lexer._e_whitespace)
+        e_newline = Event(_Lexer._e_newline)
+        e_backslash = Event(_Lexer._e_backslash)
 
         new.on(e_start, doc_start)
         new.on(e_end, doc_end)
@@ -275,7 +275,7 @@ class _Lexer(events.EventSource):
         if not self._started:
             self._started = True
             self._state_machine.consume(Event('start'))
-        self._lexer.consume(data)
+        self._tokenizer.consume(data)
 
 
 JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
@@ -338,9 +338,11 @@ class JSONStreamer(events.EventSource):
         elif top is JSONCompositeType.ARRAY:
             self.fire(JSONStreamer.ELEMENT_EVENT, value)
 
-
     def consume(self, data):
         self._lexer.consume(data)
+
+    def close(self):
+        self._lexer.close()
 
 
 class ObjectStreamer(events.EventSource):
@@ -437,6 +439,10 @@ class ObjectStreamer(events.EventSource):
     def consume(self, data):
         self._streamer.consume(data)
 
+    def close(self):
+        self._streamer.close()
+
+
 def test_obj_streamer_array():
     json_array = """["a",2,true,{"apple":"fruit"}]"""
     test_obj_streamer_array.counter = 0
@@ -470,6 +476,7 @@ def test_obj_streamer_object():
     obj_streamer.consume(json_input)
     return test_obj_streamer_object.counter is 3
 
+
 def test_obj_streamer_object_nested():
     json_n = """{"a":8, "b": {"c": {"d":9}}, "e":{"f":{"g":10, "h":[1,2,3]}}, "i":11}"""
     test_obj_streamer_object_nested.counter = 0
@@ -481,6 +488,7 @@ def test_obj_streamer_object_nested():
     obj_streamer.add_catch_all_listener(_catch_all)
     obj_streamer.consume(json_n)
     return test_obj_streamer_object_nested.counter is 6
+
 
 def test_lexer_basic():
     json_input = """
