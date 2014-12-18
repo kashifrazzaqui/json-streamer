@@ -210,6 +210,7 @@ class _Lexer(events.EventSource):
         string_end.on(e_rsquare, array_end)
         string_end.on(e_comma, more)
         string_end.on(e_colon, more)
+        string_end.ignores(e_whitespace, e_newline)
         string_end.faulty(e_start, e_end, e_reset, e_lbrace, e_lsquare, e_char, e_colon, e_dblquote, e_backslash)
 
         literal.loops(e_char)
