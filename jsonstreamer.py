@@ -218,7 +218,7 @@ class _Lexer(events.EventSource):
         literal.on(e_rsquare, array_end)
         literal.on(e_comma, more)
         literal.ignores(e_newline, e_whitespace)
-        literal.faulty(e_start, e_end, e_reset, e_lbrace, e_lsquare, e_dblquote, e_colon, e_backslash)
+        literal.faulty(e_start, e_end, e_reset, e_lbrace, e_lsquare, e_colon, e_dblquote, e_backslash)
 
         more.on(e_lbrace, object_start)
         more.on(e_lsquare, array_start)
@@ -757,6 +757,35 @@ def test_large_deep_obj_streamer():
     assert type(test_large_deep_obj_streamer.last_element) == dict
     assert test_large_deep_obj_streamer.last_element['company'] == 'ZILCH'
     return test_large_deep_obj_streamer.counter == len(j)
+
+
+def test_nested_dict():
+    json_input = """
+    {"glossary":
+        {"GlossDiv":
+            {"title": "S",
+                "GlossList":
+                    {"GlossEntry":
+                        {"Acronym": "SGML", "ID": "SGML", "SortAs": "SGML",
+                        "GlossTerm": "Standard Generalized Markup Language",
+                        "Abbrev": "ISO 8879:1986",
+                        "GlossDef": {"para": "A meta-markup language, used to create markup languages such as DocBook.",
+                        "GlossSeeAlso": ["GML", "XML"]},
+                        "GlossSee": "markup"}
+                    }
+            },
+            "title": "example glossary"
+        }
+    }
+    """
+    test_nested_dict.counter = 0
+    def _catch_all(event_name, *args):
+        test_nested_dict.counter += 1
+
+    streamer = JSONStreamer()
+    streamer.add_catch_all_listener(_catch_all)
+    streamer.consume(json_input)
+    return test_nested_dict.counter is 41
 
 
 if __name__ == '__main__':
