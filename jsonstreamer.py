@@ -244,7 +244,7 @@ class _Lexer(events.EventSource):
         # TODO reorder new_state by probability for perf
 
         if previous_state.equals(_Lexer._s_s_end):
-            text = self._text_accumulator.pop().lstrip()
+            text = self._text_accumulator.pop().strip()
             text = text[1:-1]  # remove surrounding double quotes
             self.fire(_Lexer._literal, JSONLiteralType.STRING, text)
 
