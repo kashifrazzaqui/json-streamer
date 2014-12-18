@@ -76,7 +76,7 @@ JSONLiteralType = Enum('JSONValueType', 'STRING NUMBER BOOLEAN NULL')
 
 
 class _Lexer(events.EventSource):
-    _number_pattern = re.compile("^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$")
+    _number_pattern = re.compile('^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$')
     _true = 'true'
     _false = 'false'
     _null = 'null'
@@ -168,6 +168,7 @@ class _Lexer(events.EventSource):
         object_start.loops(e_lbrace)
         object_start.on(e_rbrace, object_end)
         object_start.on(e_dblquote, string_start)
+        object_start.ignores(e_newline, e_whitespace)
         object_start.faulty(e_start, e_end, e_lsquare, e_rsquare, e_comma, e_colon, e_backslash)
 
         object_end.on(e_end, doc_end)
@@ -231,7 +232,7 @@ class _Lexer(events.EventSource):
         self._state_machine.add_listener('error', self._on_error)
 
     def _on_error(self, current_state, event):
-        raise RuntimeError("{} event cannot be processed in current state: {}".format(event, current_state))
+        raise RuntimeError("{} event cannot be processed in current state: {}".format(event.name, current_state.name))
 
     def _on_before_state_change(self, current_state, pending_event):
         pass
@@ -304,7 +305,7 @@ class JSONStreamer(events.EventSource):
 
     def _on_object_start(self):
         self._stack.append(JSONCompositeType.OBJECT)
-        self._pending_value = False  # NEW
+        self._pending_value = False
         self.fire(JSONStreamer.OBJECT_START_EVENT)
 
     def _on_object_end(self):
