@@ -1,11 +1,19 @@
+"""jsonstreamer provides a SAX-like push parser via the JSONStreamer class and a 'object' parser via the
+class which emits top level entities in any JSON object.
+
+Useful for parsing partial JSON coming over the wire or via disk
+Uses 'again' python module's 'events.EventSource' framework for event boilerplate
+again -> https://github.com/kashifrazzaqui/again#eventing-boilerplate
+"""
+
 from again import events
 from again.statemachine import StateMachine, State, Event
-from again.decorate import log
 from enum import Enum
 import re
 
 
 class _Tokenizer(events.EventSource):
+    """ Tokenizes characters and emits events - for internal use only """
     token_ids = [('{', 'lbrace'), ('}', 'rbrace'), ('[', 'lsquare'), (']', 'rsquare'), (',', 'comma'), (':', 'colon'),
                  ('"', 'dblquote'), (' ', 'whitespace'), ('\n', 'newline'), ('\\', 'backslash')]
     char = 'char'
@@ -26,9 +34,7 @@ class _Tokenizer(events.EventSource):
 
 
 class _TextAccumulator(events.EventSource):
-    """
-    Combines characters to form words, handles escaping
-    """
+    """ Combines characters to form words, handles escaping - for internal use only """
     _criteria = ['char', 'whitespace', 'dblquote']
     _escape_char = 'backslash'
     _escaped_bslash = '\\'
@@ -295,6 +301,35 @@ JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
 
 
 class JSONStreamer(events.EventSource):
+    """ Provides a SAX-like push parser which emits events on parsing JSON tokens
+
+    Apart from the public API of this class - an API for attaching events is inherited from again.events.EventSource
+    which provides the following functionality
+
+    self.add_listener(event, listener)
+    self.remove_listener(event, listener)
+    self.add_catch_all_listener(listener) - this listener receives ALL events
+    self.remove_catch_all_listener(listener)
+    self.auto_listen(self, observer, prefix="_on_") - this automatically finds and attaches methods in the `observer`
+        object which are named as `_on_event` as listeners to the jsonstreamer object. This reduces the need to attach
+        each listener manually
+
+    Events:
+        Events are of the form (event, *args)
+
+        JSONStreamer.DOC_START_EVENT (str): Fired when the `consume` method is called for the first time
+        JSONStreamer.DOC_END_EVENT (str): Fired when the `close` method is called
+        JSONStreamer.OBJECT_START_EVENT (str): Fired when a JSON object starts with a `{`
+        JSONStreamer.OBJECT_END_EVENT (str): Fired when a JSON object ends with a `}`
+        JSONStreamer.ARRAY_START_EVENT (str): Fired when a JSON array starts with a `[`
+        JSONStreamer.ARRAY_END_EVENT (str): Fired when a JSON array ends with a `]`
+        JSONStreamer.KEY_EVENT (str): Fired when a key is encountered within a JSON Object, event also delivers a
+            string payload with the name of the key as the only parameter in *args
+        JSONStreamer.VALUE_EVENT (str): Fired when a value for a key is encountered; event also delivers a payload
+        with the value as the only parameter of *args. The type of the value can be a `string|int|float|boolean|None`
+        JSONStreamer.ELEMENT_EVENT (str): Fired when an array element is encounterd; event also delivers a paylod
+        with the value as the only parameter of *args. The type of the value can be a `string|int|float|boolean|None`
+    """
     DOC_START_EVENT = 'doc_start'
     DOC_END_EVENT = 'doc_end'
     OBJECT_START_EVENT = 'object_start'
@@ -353,18 +388,51 @@ class JSONStreamer(events.EventSource):
             self.fire(JSONStreamer.ELEMENT_EVENT, value)
 
     def consume(self, data):
+        """Takes input that must be parsed
+
+        Note:
+            Attach all your listeners before calling this method
+
+        Args:
+            data (str): input json string
+        """
         self._lexer.consume(data)
 
     def close(self):
+        """Closes the streamer which causes a `DOC_END_EVENT` to be fired """
         self._lexer.close()
         self._lexer = None
         self._stack = None
 
 
 class ObjectStreamer(events.EventSource):
-    """
-    For a JSON object it streams all complete keys/value pairs
-    For a JSON array it streams all complete values
+    """ Emits key-value pairs or array elements at the top level of a json object/array
+
+    Apart from the public API of this class - an API for attaching events is inherited from again.events.EventSource
+    which provides the following functionality
+
+    self.add_listener(event, listener)
+    self.remove_listener(event, listener)
+    self.add_catch_all_listener(listener) - this listener receives ALL events
+    self.remove_catch_all_listener(listener)
+    self.auto_listen(self, observer, prefix="_on_") - this automatically finds and attaches methods in the `observer`
+        object which are named as `_on_event` as listeners to the jsonstreamer object. This reduces the need to attach
+        each listener manually
+
+    Events:
+        Events are of the form (event, *args)
+        ObjectStreamer.OBJECT_STREAM_START_EVENT (str): Fired at the start of the `root` JSON object, this is mutually
+            exclusive from the ARRAY_STREAM_*_EVENTs
+        ObjectStreamer.OBJECT_STREAM_END_EVENT (str): Fired at the end of the `root` JSON object, this is mutually
+            exclusive from the ARRAY_STREAM_*_EVENTs
+        ObjectStreamer.ARRAY_STREAM_START_EVENT (str): Fired at the start of the `root` JSON array, this is mutually
+            exclusive from the OBJECT_STREAM_*_EVENTs
+        ObjectStreamer.ARRAY_STREAM_END_EVENT (str): Fired at the end of the `root` JSON array, this is mutually
+            exclusive from the OBJECT_STREAM_*_EVENTs
+        ObjectStreamer.PAIR_EVENT (str): Fired when a top level key-value pair of the `root` object is complete. This
+            event also carries a tuple payload which contains the key (str) and value (str|int|float|boolean|None)
+        ObjectStreamer.ELEMENT_EVENT (str): Fired when an array element of the `root` array is complete. This event
+            also carries a payload which contains the value (str|int|float|boolean|None) of the element
     """
     OBJECT_STREAM_START_EVENT = 'object_stream_start'
     OBJECT_STREAM_END_EVENT = 'object_stream_end'
@@ -453,13 +521,23 @@ class ObjectStreamer(events.EventSource):
             self._obj_stack[-1].append(item)
 
     def consume(self, data):
+        """Takes input that must be parsed
+
+        Note:
+            Attach all your listeners before calling this method
+
+        Args:
+            data (str): input json string
+        """
         self._streamer.consume(data)
 
     def close(self):
+        """Closes the object streamer"""
         self._streamer.close()
         self._streamer = None
 
 
+# TESTS
 def test_obj_streamer_array():
     import json
 
@@ -779,6 +857,7 @@ def test_nested_dict():
     }
     """
     test_nested_dict.counter = 0
+
     def _catch_all(event_name, *args):
         test_nested_dict.counter += 1
 
