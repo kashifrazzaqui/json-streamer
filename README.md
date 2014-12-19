@@ -1,9 +1,13 @@
 json-streamer
 =============
 jsonstreamer provides a SAX-like push parser via the JSONStreamer class and a 'object' parser via the
-class which emits top level entities in any JSON object.
+class which emits top level entities in any JSON object. Works with Python3 only.
 
 
+### Setup
+    pip3 install jsonstreamer
+
+### Example
 
 variables which contain the input we want to parse
     
@@ -24,7 +28,7 @@ an event listener function which prints the events
     def _catch_all(event_name, *args):
         print('\t{} : {}'.format(event_name, args))
         
-### JSONStreamer Example
+#### JSONStreamer Example
 import and run jsonstreamer on 'json_object'
 
     from jsonstreamer import JSONStreamer 
@@ -82,7 +86,7 @@ output
         array_end : ()
         doc_end : ()
    
-### ObjectStreamer Example
+#### ObjectStreamer Example
 
 import and run ObjectStreamer on 'json_object'
 
