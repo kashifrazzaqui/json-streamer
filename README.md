@@ -1,9 +1,13 @@
 json-streamer
 =============
 jsonstreamer provides a SAX-like push parser via the JSONStreamer class and a 'object' parser via the
-class which emits top level entities in any JSON object.
+ObjectStreamer class which emits top level entities in any JSON object. Works with Python3 only.
 
 
+### Setup
+    pip3 install jsonstreamer
+
+### Example
 
 variables which contain the input we want to parse
     
@@ -19,12 +23,44 @@ variables which contain the input we want to parse
     """
    
     
-an event listener function which prints the events
+a catch-all event listener function which prints the events
 
     def _catch_all(event_name, *args):
         print('\t{} : {}'.format(event_name, args))
         
-### JSONStreamer Example
+#### JSONStreamer Example
+
+Event listeners get events in their parameters and must have appropriate signatures for receiving their specific event of interest.
+
+JSONStreamer provides the following events:
+* doc_start
+* doc_end
+* object_start
+* object_end
+* array_start
+* array_end
+* key - this also carries the name of the key as a string param
+* value -  this also carries the value as a string|int|float|boolean|None param
+* element - this also carries the value as a string|int|float|boolean|None param
+
+Listener methods must have signatures that match
+
+For example for events: doc_start, doc_end, object_start, object_end, array_start and array_end the listener must be as such, note no params required
+
+    def listener():
+        pass
+        
+OR, if your listener is a class method, it can have an additional 'self' param as such
+
+    def listener(self):
+        pass
+        
+For events: key, value, element listeners must also receive an additional payload and must be declared as such
+
+    def key_listener(key_string):
+        pass
+
+
 import and run jsonstreamer on 'json_object'
 
     from jsonstreamer import JSONStreamer 
@@ -82,7 +118,15 @@ output
         array_end : ()
         doc_end : ()
    
-### ObjectStreamer Example
+#### ObjectStreamer Example
+
+ObjectStreamer provides the following events:
+* object_stream_start
+* object_stream_end
+* array_stream_start
+* array_stream_end
+* pair
+* element
 
 import and run ObjectStreamer on 'json_object'
 
@@ -122,3 +166,39 @@ output - note that the events are different for an array
         element : ([4, 5],)
         element : ('a',)
         array_stream_end : ()
+
+#### Example on attaching listeners for various events
+
+    ob_streamer = ObjectStreamer()
+    
+    def pair_listener(pair):
+        print('Explicit listener: Key: {} - Value: {}'.format(pair[0],pair[1]))
+        
+    ob_streamer.add_listener('pair', pair_listener)
+    ob_streamer.consume(json_object)
+    
+#### Even easier way of attaching listeners
+
+    class MyClass:
+        
+        def __init__(self):
+            self._obj_streamer = ObjectStreamer()
+            
+            # this automatically finds listeners in this class and attaches them if they are named
+            # using the following convention '_on_eventname'. Note method names in this class
+            self._obj_streamer.auto_listen(self) 
+        
+        def _on_object_stream_start(self):
+            print ('Root Object Started')
+            
+        def _on_pair(self, pair):
+            print('Key: {} - Value: {}'.format(pair[0],pair[1]))
+            
+        def parse(self, data):
+            self._obj_streamer.consume(data)
+            
+            
+    m = MyClass()
+    m.parse(json_object)
+    
+    
