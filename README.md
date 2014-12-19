@@ -174,15 +174,17 @@ output - note that the events are different for an array
     def pair_listener(pair):
         print('Explicit listener: Key: {} - Value: {}'.format(pair[0],pair[1]))
         
-    ob_streamer.add_listener('pair', pair_listener)
+    ob_streamer.add_listener('pair', pair_listener) #same for JSONStreamer
     ob_streamer.consume(json_object)
+    
+    ob_streamer.remove_listener(pair_listener) #if you need to remove the listener explicitly
     
 #### Even easier way of attaching listeners
 
     class MyClass:
         
         def __init__(self):
-            self._obj_streamer = ObjectStreamer()
+            self._obj_streamer = ObjectStreamer() #same for JSONStreamer
             
             # this automatically finds listeners in this class and attaches them if they are named
             # using the following convention '_on_eventname'. Note method names in this class
