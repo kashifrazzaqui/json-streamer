@@ -5,29 +5,32 @@ ObjectStreamer class which emits top level entities in any JSON object. Works wi
 
 
 ### Setup
+
     pip3 install jsonstreamer
 
+    
 ### Example
 
 variables which contain the input we want to parse
     
-    json_object = """
-        {
-            "fruits":["apple","banana", "cherry"],
-            "calories":[100,200,50]
-        }
-    """
-    
-    json_array = """
-        [1,2,true,[4,5],"a"]
-    """
-   
+```python
+json_object = """
+    {
+        "fruits":["apple","banana", "cherry"],
+        "calories":[100,200,50]
+    }
+"""
+
+json_array = """[1,2,true,[4,5],"a"]"""
+```
     
 a catch-all event listener function which prints the events
 
-    def _catch_all(event_name, *args):
-        print('\t{} : {}'.format(event_name, args))
-        
+```python
+def _catch_all(event_name, *args):
+    print('\t{} : {}'.format(event_name, args))
+```
+
 #### JSONStreamer Example
 
 Event listeners get events in their parameters and must have appropriate signatures for receiving their specific event of interest.
@@ -47,31 +50,37 @@ Listener methods must have signatures that match
 
 For example for events: doc_start, doc_end, object_start, object_end, array_start and array_end the listener must be as such, note no params required
 
-    def listener():
-        pass
-        
+```python
+def listener():
+    pass
+```
 OR, if your listener is a class method, it can have an additional 'self' param as such
 
-    def listener(self):
-        pass
-        
+```python
+def listener(self):
+    pass
+```
+
 For events: key, value, element listeners must also receive an additional payload and must be declared as such
 
-    def key_listener(key_string):
-        pass
-
+```python
+def key_listener(key_string):
+    pass
+```
 
 import and run jsonstreamer on 'json_object'
 
-    from jsonstreamer import JSONStreamer 
-    
-    print("\nParsing the json object:")
-    streamer = JSONStreamer() 
-    streamer.add_catch_all_listener(_catch_all)
-    streamer.consume(json_object[0:10]) #note that partial input is possible
-    streamer.consume(json_object[10:])
-    streamer.close()
-   
+```python
+from jsonstreamer import JSONStreamer 
+
+print("\nParsing the json object:")
+streamer = JSONStreamer() 
+streamer.add_catch_all_listener(_catch_all)
+streamer.consume(json_object[0:10]) #note that partial input is possible
+streamer.consume(json_object[10:])
+streamer.close()
+```
+
 output
 
     Parsing the json object:
@@ -95,12 +104,14 @@ output
     
 run jsonstreamer on 'json_array'
 
-    print("\nParsing the json array:")
-    streamer = JSONStreamer() #can't reuse old object, make a fresh one
-    streamer.add_catch_all_listener(_catch_all)
-    streamer.consume(json_array[0:5])
-    streamer.consume(json_array[5:])
-    streamer.close()
+```python
+print("\nParsing the json array:")
+streamer = JSONStreamer() #can't reuse old object, make a fresh one
+streamer.add_catch_all_listener(_catch_all)
+streamer.consume(json_array[0:5])
+streamer.consume(json_array[5:])
+streamer.close()
+```
 
 output
 
@@ -130,15 +141,17 @@ ObjectStreamer provides the following events:
 
 import and run ObjectStreamer on 'json_object'
 
-    from jsonstreamer import ObjectStreamer
-    
-    print("\nParsing the json object:")
-    object_streamer = ObjectStreamer()
-    object_streamer.add_catch_all_listener(_catch_all)
-    object_streamer.consume(json_object[0:9])
-    object_streamer.consume(json_object[9:])
-    object_streamer.close()
-    
+```python
+from jsonstreamer import ObjectStreamer
+
+print("\nParsing the json object:")
+object_streamer = ObjectStreamer()
+object_streamer.add_catch_all_listener(_catch_all)
+object_streamer.consume(json_object[0:9])
+object_streamer.consume(json_object[9:])
+object_streamer.close()
+```    
+
 output
 
     Parsing the json object:
@@ -149,12 +162,14 @@ output
 
 run the ObjectStreamer on the 'json_array'
 
-    print("\nParsing the json array:")
-    object_streamer = ObjectStreamer()
-    object_streamer.add_catch_all_listener(_catch_all)
-    object_streamer.consume(json_array[0:4])
-    object_streamer.consume(json_array[4:])
-    object_streamer.close()
+```python
+print("\nParsing the json array:")
+object_streamer = ObjectStreamer()
+object_streamer.add_catch_all_listener(_catch_all)
+object_streamer.consume(json_array[0:4])
+object_streamer.consume(json_array[4:])
+object_streamer.close()
+```
 
 output - note that the events are different for an array
 
@@ -169,38 +184,42 @@ output - note that the events are different for an array
 
 #### Example on attaching listeners for various events
 
-    ob_streamer = ObjectStreamer()
+```python
+ob_streamer = ObjectStreamer()
+
+def pair_listener(pair):
+    print('Explicit listener: Key: {} - Value: {}'.format(pair[0],pair[1]))
     
-    def pair_listener(pair):
-        print('Explicit listener: Key: {} - Value: {}'.format(pair[0],pair[1]))
-        
-    ob_streamer.add_listener('pair', pair_listener) #same for JSONStreamer
-    ob_streamer.consume(json_object)
-    
-    ob_streamer.remove_listener(pair_listener) #if you need to remove the listener explicitly
-    
+ob_streamer.add_listener('pair', pair_listener) #same for JSONStreamer
+ob_streamer.consume(json_object)
+
+ob_streamer.remove_listener(pair_listener) #if you need to remove the listener explicitly
+```
+
 #### Even easier way of attaching listeners
 
-    class MyClass:
+```python
+class MyClass:
+    
+    def __init__(self):
+        self._obj_streamer = ObjectStreamer() #same for JSONStreamer
         
-        def __init__(self):
-            self._obj_streamer = ObjectStreamer() #same for JSONStreamer
-            
-            # this automatically finds listeners in this class and attaches them if they are named
-            # using the following convention '_on_eventname'. Note method names in this class
-            self._obj_streamer.auto_listen(self) 
+        # this automatically finds listeners in this class and attaches them if they are named
+        # using the following convention '_on_eventname'. Note method names in this class
+        self._obj_streamer.auto_listen(self) 
+    
+    def _on_object_stream_start(self):
+        print ('Root Object Started')
         
-        def _on_object_stream_start(self):
-            print ('Root Object Started')
-            
-        def _on_pair(self, pair):
-            print('Key: {} - Value: {}'.format(pair[0],pair[1]))
-            
-        def parse(self, data):
-            self._obj_streamer.consume(data)
-            
-            
-    m = MyClass()
-    m.parse(json_object)
+    def _on_pair(self, pair):
+        print('Key: {} - Value: {}'.format(pair[0],pair[1]))
+        
+    def parse(self, data):
+        self._obj_streamer.consume(data)
+        
+        
+m = MyClass()
+m.parse(json_object)
+```
     
     
