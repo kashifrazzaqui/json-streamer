@@ -187,6 +187,7 @@ class _Lexer(events.EventSource):
         object_end.faulty(e_start, e_reset, e_lsquare, e_char, e_colon, e_dblquote, e_backslash)
 
         array_start.on(e_lbrace, object_start)
+        array_start.on(e_rsquare, array_end)
         array_start.loops(e_lsquare)
         array_start.on(e_char, literal)
         array_start.on(e_dblquote, string_start)
