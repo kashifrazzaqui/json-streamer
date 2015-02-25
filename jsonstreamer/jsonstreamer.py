@@ -819,23 +819,27 @@ def test_large_deep_obj_streamer():
       }
     ]
     """
-    test_large_deep_obj_streamer.counter = 0
-    test_large_deep_obj_streamer.last_element = None
 
-    def _catch_all(event_name, *args):
-        if event_name == 'element':
-            test_large_deep_obj_streamer.counter += 1
-            test_large_deep_obj_streamer.last_element = args[0]
+    test_large_deep_obj_streamer.result = None
+
+    def array_start_listener():
+        test_large_deep_obj_streamer.result = []
+
+    def element_listener(e):
+        test_large_deep_obj_streamer.result.append(e)
+
 
     import json
 
     j = json.loads(json_input)
     object_streamer = ObjectStreamer()
-    object_streamer.add_catch_all_listener(_catch_all)
+    object_streamer.add_listener('array_stream_start', array_start_listener)
+    object_streamer.add_listener('element', element_listener)
+
     object_streamer.consume(json_input)
-    assert type(test_large_deep_obj_streamer.last_element) == dict
-    assert test_large_deep_obj_streamer.last_element['company'] == 'ZILCH'
-    return test_large_deep_obj_streamer.counter == len(j)
+
+    assert test_large_deep_obj_streamer.result[1]['friends'][0]['name'] == 'Elise Giles'
+    return len(test_large_deep_obj_streamer.result) == len(j)
 
 
 def test_nested_dict():
