@@ -867,6 +867,44 @@ def test_nested_dict():
     streamer.consume(json_input)
     return test_nested_dict.counter is 41
 
+def test_array_of_objects():
+    json_input = """
+        {
+          "type": "register",
+          "pid": "66062cd7",
+          "params": {
+            "dependencies": [
+              {
+                "service": "IdentityService",
+                "version": "1",
+                "app": "Example"
+              }
+            ],
+            "node_id": "2ccdde7e",
+            "host": "127.0.0.1",
+            "port": 4500,
+            "version": "1",
+            "app": "Example",
+            "service": "AccountService"
+          }
+        }
+    """
+
+    test_large_deep_obj_streamer.counter = 0
+    test_large_deep_obj_streamer.last_element = None
+
+    def _catch_all(event_name, *args):
+        print(event_name)
+        print(args)
+        if event_name == 'element':
+            test_large_deep_obj_streamer.counter += 1
+            test_large_deep_obj_streamer.last_element = args[0]
+
+    object_streamer = ObjectStreamer()
+    object_streamer.add_catch_all_listener(_catch_all)
+    object_streamer.consume(json_input)
+    assert type(test_large_deep_obj_streamer.last_element) == dict
+
 
 if __name__ == '__main__':
     from again.testrunner import run_tests
