@@ -249,7 +249,6 @@ class _Lexer(events.EventSource):
 
     def _on_after_state_change(self, previous_state, event, new_state):
         # TODO reorder new_state by probability for perf
-
         if previous_state.equals(_Lexer._s_s_end):
             text = self._text_accumulator.pop().strip()
             text = text[1:-1]  # remove surrounding double quotes
@@ -483,8 +482,12 @@ class ObjectStreamer(events.EventSource):
                     k = self._key_stack.pop()
                     top[k] = o
         elif key_depth > 1:
-            k = self._key_stack.pop()
-            self._obj_stack[-1][k] = o
+            current_obj = self._obj_stack[-1]
+            if type(current_obj) is list:
+                current_obj.append(o)
+            else:
+                k = self._key_stack.pop()
+                current_obj[k] = o
 
     def _on_object_end(self):
         if len(self._obj_stack) > 0:
@@ -539,6 +542,42 @@ class ObjectStreamer(events.EventSource):
 
 
 # TESTS
+
+def test_array_of_objects():
+    json_input = """
+        {
+          "params": {
+            "dependencies": [
+              {
+                "app": "Example"
+              }
+            ]
+          }
+        }
+    """
+
+    import json
+
+    j = json.loads(json_input)
+
+    test_array_of_objects.result = None
+
+    def _obj_start():
+        test_array_of_objects.result = {}
+
+    def _elem(e):
+        key, value = e[0], e[1]
+        test_array_of_objects.result[key] = value
+
+    streamer = ObjectStreamer()
+    streamer.add_listener(ObjectStreamer.OBJECT_STREAM_START_EVENT, _obj_start)
+    streamer.add_listener(ObjectStreamer.PAIR_EVENT, _elem)
+    streamer.consume(json_input)
+    assert len(str(j)) == len(str(test_array_of_objects.result))
+    return j['params']['dependencies'][0]['app'] == test_array_of_objects.result['params']['dependencies'][0]['app']
+
+
+
 def test_obj_streamer_array():
     import json
 
@@ -870,44 +909,6 @@ def test_nested_dict():
     streamer.add_catch_all_listener(_catch_all)
     streamer.consume(json_input)
     return test_nested_dict.counter is 41
-
-def test_array_of_objects():
-    json_input = """
-        {
-          "type": "register",
-          "pid": "66062cd7",
-          "params": {
-            "dependencies": [
-              {
-                "service": "IdentityService",
-                "version": "1",
-                "app": "Example"
-              }
-            ],
-            "node_id": "2ccdde7e",
-            "host": "127.0.0.1",
-            "port": 4500,
-            "version": "1",
-            "app": "Example",
-            "service": "AccountService"
-          }
-        }
-    """
-
-    test_large_deep_obj_streamer.counter = 0
-    test_large_deep_obj_streamer.last_element = None
-
-    def _catch_all(event_name, *args):
-        print(event_name)
-        print(args)
-        if event_name == 'element':
-            test_large_deep_obj_streamer.counter += 1
-            test_large_deep_obj_streamer.last_element = args[0]
-
-    object_streamer = ObjectStreamer()
-    object_streamer.add_catch_all_listener(_catch_all)
-    object_streamer.consume(json_input)
-    assert type(test_large_deep_obj_streamer.last_element) == dict
 
 
 if __name__ == '__main__':
