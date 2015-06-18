@@ -35,7 +35,8 @@ class _Tokenizer(events.EventSource):
 
 class _TextAccumulator(events.EventSource):
     """ Combines characters to form words, handles escaping - for internal use only """
-    _criteria = ['char', 'whitespace', 'dblquote']
+    _string_criteria = ['char', 'whitespace', 'dblquote', 'lsquare', 'rsqaure', 'comma', 'colon', 'lbrace', 'rbrace']
+    _json_criteria = ['char', 'whitespace', 'dblquote']
     _escape_char = 'backslash'
     _escaped_bslash = '\\'
     _escaped_dbl_bslash = '\\\\'
@@ -44,9 +45,19 @@ class _TextAccumulator(events.EventSource):
         super(_TextAccumulator, self).__init__()
         self._ = ""
         self._escaping = False
+        self._string_start = False
+        self._criteria = self._json_criteria
 
     def _listener(self, event_name, payload):
-        if event_name in _TextAccumulator._criteria:
+        if event_name == 'dblquote' and not self._escaping:
+            if self._string_start:
+                self._string_start = False
+                self._criteria = self._json_criteria
+            else:
+                self._string_start = True
+                self._criteria = self._string_criteria
+
+        if event_name in self._criteria:
             if self._escaping:
                 self._ += _TextAccumulator._escaped_bslash
                 self._escaping = False
@@ -202,10 +213,10 @@ class _Lexer(events.EventSource):
         array_end.faulty(e_start, e_reset, e_lbrace, e_lsquare, e_rsquare, e_char, e_colon, e_dblquote,
                          e_backslash)
 
-        string_start.loops(e_char, e_comma, e_colon, e_whitespace, e_newline)
+        string_start.loops(e_char, e_comma, e_colon, e_whitespace, e_newline, e_lbrace, e_rbrace, e_lsquare, e_rsquare)
         string_start.on(e_backslash, string_escaping)
         string_start.on(e_dblquote, string_end)
-        string_start.faulty(e_start, e_end, e_reset, e_lbrace, e_rbrace, e_lsquare, e_rsquare)
+        string_start.faulty(e_start, e_end, e_reset)
 
         string_escaping.on(e_char, string_start)
         string_escaping.on(e_dblquote, string_start)
