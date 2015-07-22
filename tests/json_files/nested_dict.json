@@ -1,0 +1,9 @@
+{
+  "params": {
+    "dependencies": [
+      {
+        "app": "Example"
+      }
+    ]
+  }
+}

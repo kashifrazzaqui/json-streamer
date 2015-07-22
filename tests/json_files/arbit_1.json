@@ -1,0 +1,53 @@
+{
+  "to": "8743d93a",
+  "type": "response",
+  "payload": {
+    "result": {
+      "units_in_pack": 30,
+      "sku_id": 91,
+      "price": 200.0,
+      "manufacturer": {
+        "id": 5,
+        "url": "johnsons.com",
+        "name": "johnsons"
+      },
+      "attributes": [
+        {
+          "display_name": "pack form",
+          "value": "strip",
+          "key": "pack_form"
+        },
+        {
+          "display_name": "drug form",
+          "value": "tablet",
+          "key": "drug_form"
+        },
+        {
+          "display_name": "strength",
+          "value": "200 mg",
+          "key": "strength"
+        },
+        {
+          "display_name": "name",
+          "value": "paracetamol",
+          "key": "name"
+        },
+        {
+          "display_name": "units in pack",
+          "value": 30,
+          "key": "units_in_pack"
+        }
+      ],
+      "brand": "crocin",
+      "type": "allopathy",
+      "name": "crocin 200 mg",
+      "image_urls": [
+        "http//1example.com/3",
+        "http//1example.com/2"
+      ]
+    },
+    "request_id": "0f2d9b9c"
+  },
+  "entity": null,
+  "pid": "43abc6be"
+}
