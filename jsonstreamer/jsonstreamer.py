@@ -10,7 +10,7 @@ from again import events
 from enum import Enum
 from .yajl.parse import YajlParser, YajlListener, YajlError
 from .tape import Tape
-
+from sys import stdin
 
 JSONLiteralType = Enum('JSONValueType', 'STRING NUMBER BOOLEAN NULL')
 JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
@@ -330,3 +330,19 @@ class ObjectStreamer(events.EventSource):
         self._streamer.close()
         self._streamer = None
 
+def run(data=stdin):
+    json_input = data.read()
+
+    def _catch_all(event_name, *args):
+        print('event:', event_name)
+        for each in args:
+            print('\t->', 'values:', each)
+
+    streamer = JSONStreamer()
+    streamer.add_catch_all_listener(_catch_all)
+    streamer.consume(json_input)
+    streamer.close()
+
+
+if __name__ == '__main__':
+    run()
