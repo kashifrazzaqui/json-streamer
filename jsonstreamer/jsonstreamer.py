@@ -330,4 +330,3 @@ class ObjectStreamer(events.EventSource):
         self._streamer.close()
         self._streamer = None
 
-
