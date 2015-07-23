@@ -214,15 +214,20 @@ class YajlParser:
         # set self's vars
         self._buffer_size = 65536
         self._listener = listener
+        self._handler = yajl.yajl_alloc(self.callbacks, None, None)
+        self._config(self._handler)
+        self.allow_partial_values = True
+        self.allow_multiple_values = True
 
-    def config(self, hand):
-        for k, v in [(ALLOW_COMMENTS, 'allow_comments'), (DONT_VALIDATE_STRINGS, 'dont_validate_strings'),
+    def _config(self, hand):
+        for k, v in [(ALLOW_COMMENTS, 'allow_comments'),
+                     (DONT_VALIDATE_STRINGS, 'dont_validate_strings'),
                      (ALLOW_MULTIPLE_VALUES, 'allow_multiple_values'),
                      (ALLOW_PARTIAL_VALUES, 'allow_partial_values')]:
             if hasattr(self, v):
                 yajl.yajl_config(hand, k, getattr(self, v))
 
-    def parse(self, f, context=None):
+    def parse(self, f):
         '''Function to parse a JSON stream.
         :type f: file
         :param f: stream to parse JSON from
@@ -230,28 +235,20 @@ class YajlParser:
         :raises YajlError: When invalid JSON in input stream found
         '''
         self._listener.parse_start()
-        hand = yajl.yajl_alloc(self.callbacks, None, context)
-        self.config(hand)
 
-        try:
-            while len(f):
-                data = f.read(self._buffer_size).encode('utf-8')
-                status = yajl.yajl_parse(hand, data, len(data))
-                self._listener.parse_buf()
-                if status != OK.value:
-                    if status == CLIENT_CANCELLED.value:
-                        # it means we have an exception
-                        if self._exc_info:
-                            exc_info = self._exc_info
-                            raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
-                        else:
-                            raise YajlError("Client probably cancelled callback")
+        while len(f):
+            data = f.read(self._buffer_size).encode('utf-8')
+            status = yajl.yajl_parse(self._handler, data, len(data))
+            self._listener.parse_buf()
+            if status != OK.value:
+                if status == CLIENT_CANCELLED.value:
+                    if self._exc_info:
+                        exc_info = self._exc_info
+                        raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
                     else:
-                        yajl.yajl_get_error.restype = c_char_p
-                        error = yajl.yajl_get_error(hand, 1, data, len(data))
-                        raise YajlError(error)
-                if not data:
-                    self._listener.complete_parse()
-                    break
-        finally:
-            yajl.yajl_free(hand)
+                        raise YajlError("Client probably cancelled callback")
+                else:
+                    yajl.yajl_get_error.restype = c_char_p
+                    error = yajl.yajl_get_error(self._handler, 1, data, len(data))
+                    raise YajlError(error)
+            if not data: return

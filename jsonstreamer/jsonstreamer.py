@@ -6,18 +6,19 @@ Uses 'again' python module's 'events.EventSource' framework for event boilerplat
 again -> https://github.com/kashifrazzaqui/again#eventing-boilerplate
 """
 
-from again import events
 from enum import Enum
+from sys import stdin, stdout
+
+from again import events
+
 from .yajl.parse import YajlParser, YajlListener, YajlError
 from .tape import Tape
-from sys import stdin
 
 JSONLiteralType = Enum('JSONValueType', 'STRING NUMBER BOOLEAN NULL')
 JSONCompositeType = Enum('JSONCompositeType', 'OBJECT ARRAY')
 
 
 class JSONStreamerException(Exception):
-
     def __init__(self, msg):
         self._msg = msg
 
@@ -67,11 +68,11 @@ class JSONStreamer(events.EventSource, YajlListener):
 
     def __init__(self):
         super(JSONStreamer, self).__init__()
-        self._parser = None
         self._file_like = Tape()
         self._stack = []
         self._pending_value = False
-
+        self._started = False
+        self._parser = YajlParser(self)
 
     def on_start_map(self, ctx):
         self._stack.append(JSONCompositeType.OBJECT)
@@ -174,16 +175,14 @@ class JSONStreamer(events.EventSource, YajlListener):
         Args:
             data (str): input json string
         """
-        self.fire(JSONStreamer.DOC_START_EVENT)
+        if not self._started:
+            self.fire(JSONStreamer.DOC_START_EVENT)
+            self._started = True
         self._file_like.write(data)
-        if not self._parser:
-            self._parser = YajlParser(self)
-            self._parser.allow_partial_values = True
-            self._parser.allow_multiple_values = True
-            try:
-                self._parser.parse(self._file_like)
-            except YajlError as ye:
-                raise JSONStreamerException(ye.value)
+        try:
+            self._parser.parse(self._file_like)
+        except YajlError as ye:
+            raise JSONStreamerException(ye.value)
 
     def close(self):
         """Closes the streamer which causes a `DOC_END_EVENT` to be fired """
@@ -330,13 +329,14 @@ class ObjectStreamer(events.EventSource):
         self._streamer.close()
         self._streamer = None
 
+
 def run(data=stdin):
     json_input = data.read()
 
     def _catch_all(event_name, *args):
-        print('event:', event_name)
+        stdout.write('\nevent: ' + event_name)
         for each in args:
-            print('\t->', 'values:', each)
+            stdout.write('\t->' + ' values: ' + str(each))
 
     streamer = JSONStreamer()
     streamer.add_catch_all_listener(_catch_all)

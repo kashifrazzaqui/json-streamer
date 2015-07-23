@@ -135,23 +135,24 @@ class ObjectStreamerTests(unittest.TestCase):
                             ('pair', ('to', '8743d93a')),
                             ('pair', ('type', 'response')),
                             ('pair', ('payload',
-                                        {'request_id': '0f2d9b9c',
-                                         'result':
-                                             {'type': 'allopathy',
-                                              'manufacturer': { 'url': 'johnsons.com', 'id': 5, 'name': 'johnsons' },
-                                              'name': 'crocin 200 mg',
-                                              'brand': 'crocin',
-                                              'image_urls': ['http//1example.com/3', 'http//1example.com/2'],
-                                              'price': 200.0,
-                                              'attributes': [{'value': 'strip', 'key': 'pack_form', 'display_name': 'pack form'},
-                                                             {'value': 'tablet', 'key': 'drug_form', 'display_name': 'drug form'},
-                                                             {'value': '200 mg', 'key': 'strength', 'display_name': 'strength'},
-                                                             {'value': 'paracetamol', 'key': 'name', 'display_name': 'name'},
-                                                             {'value': 30, 'key': 'units_in_pack', 'display_name': 'units in pack'}],
-                                              'sku_id': 91,
-                                              'units_in_pack': 30
-                                              }
-                                         }
+                                      {'request_id': '0f2d9b9c',
+                                       'result':
+                                           {'type': 'allopathy',
+                                            'manufacturer': {'url': 'johnsons.com', 'id': 5, 'name': 'johnsons'},
+                                            'name': 'crocin 200 mg',
+                                            'brand': 'crocin',
+                                            'image_urls': ['http//1example.com/3', 'http//1example.com/2'],
+                                            'price': 200.0,
+                                            'attributes': [
+                                                {'value': 'strip', 'key': 'pack_form', 'display_name': 'pack form'},
+                                                {'value': 'tablet', 'key': 'drug_form', 'display_name': 'drug form'},
+                                                {'value': '200 mg', 'key': 'strength', 'display_name': 'strength'},
+                                                {'value': 'paracetamol', 'key': 'name', 'display_name': 'name'},
+                                                {'value': 30, 'key': 'units_in_pack', 'display_name': 'units in pack'}],
+                                            'sku_id': 91,
+                                            'units_in_pack': 30
+                                            }
+                                       }
                                       )
                              ),
                             ('pair', ('entity', None)),
@@ -159,6 +160,46 @@ class ObjectStreamerTests(unittest.TestCase):
                             ('object_stream_end', None)]
         self._streamer.consume(json_input)
 
+
+class ObjectStreamerListenerTests(unittest.TestCase):
+    def setUp(self):
+        self._streamer = jsonstreamer.ObjectStreamer()
+
+    def tearDown(self):
+        self._streamer.close()
+        self.assertEqual(len(self._assertions), 0)
+
+    @load_test_data
+    def test_on_element(self, json_input):
+        self._assertions = ["a", 2, True, {"apple": "fruit"}]
+
+        def _on_element(value):
+            try:
+                expected_value = self._assertions.pop(0)
+            except IndexError:
+                raise AssertionError('not enough asserts')
+
+            self.assertEqual(expected_value, value)
+
+        self._streamer.add_listener('element', _on_element)
+        self._streamer.consume(json_input)
+
+    @load_test_data
+    def test_on_element_multiple_parses(self, json_input):
+        self._assertions = ["a", 2, True, {"apple": "fruit"}, ]
+
+        def _on_element(value):
+            try:
+                expected_value = self._assertions.pop(0)
+            except IndexError:
+                raise AssertionError('not enough asserts')
+
+            self.assertEqual(expected_value, value)
+
+
+        self._streamer.add_listener('element', _on_element)
+        self._streamer.consume(json_input[0:8])
+        self._streamer.consume(json_input[8:])
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

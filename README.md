@@ -1,7 +1,7 @@
 json-streamer
 =============
 jsonstreamer provides a SAX-like push parser via the JSONStreamer class and a 'object' parser via the
-ObjectStreamer class which emits top level entities in any JSON object. Works with Python3 only.
+ObjectStreamer class which emits top level entities in any JSON object. Based on the fast c libary 'yajl'
 
 ### Dependencies
 
