@@ -16,8 +16,13 @@ ObjectStreamer class which emits top level entities in any JSON object. Based on
     
 ### Example
 
+#### Shell
+    python -m jsonstreamer.jsonstreamer < some_file.json
+
+#### Code
 variables which contain the input we want to parse
-    
+
+
 ```python
 json_object = """
     {
@@ -25,7 +30,6 @@ json_object = """
         "calories":[100,200,50]
     }
 """
-
 json_array = """[1,2,true,[4,5],"a"]"""
 ```
     
