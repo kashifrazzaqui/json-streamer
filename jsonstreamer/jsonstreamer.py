@@ -338,12 +338,12 @@ def run(data=stdin):
         stdout.write('\nevent: ' + event_name)
         for each in args:
             stdout.write('\t->' + ' values: ' + str(each))
-        stdout.write('\n')
 
     streamer = JSONStreamer()
     streamer.add_catch_all_listener(_catch_all)
     streamer.consume(json_input)
     streamer.close()
+    stdout.write('\n')
 
 
 if __name__ == '__main__':
