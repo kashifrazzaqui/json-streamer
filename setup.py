@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='jsonstreamer',
-      version='1.3.4',
+      version='1.3.5',
       author='Kashif Razzaqui',
       author_email='kashif.razzaqui@gmail.com',
       url='https://github.com/kashifrazzaqui/json-streamer',

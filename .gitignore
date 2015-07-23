@@ -58,3 +58,5 @@ target/
 
 #IPython
 .ipynb_checkpoints/
+
+MANIFEST

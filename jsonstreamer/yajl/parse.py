@@ -228,7 +228,7 @@ class YajlParser:
                 yajl.yajl_config(hand, k, getattr(self, v))
 
     def parse(self, f):
-        '''Function to parse a JSON stream.
+        '''parse a JSON stream.
         :type f: file
         :param f: stream to parse JSON from
         :type context: ctypes.POINTER
@@ -252,3 +252,7 @@ class YajlParser:
                     error = yajl.yajl_get_error(self._handler, 1, data, len(data))
                     raise YajlError(error)
             if not data: return
+
+    def close(self):
+        yajl.yajl_free(self._handler)
+

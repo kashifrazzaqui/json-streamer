@@ -185,9 +185,10 @@ class JSONStreamer(events.EventSource, YajlListener):
             raise JSONStreamerException(ye.value)
 
     def close(self):
-        """Closes the streamer which causes a `DOC_END_EVENT` to be fired """
+        """Closes the streamer which causes a `DOC_END_EVENT` to be fired  and frees up memory used by yajl"""
         self.fire(JSONStreamer.DOC_END_EVENT)
         self._stack = None
+        self._parser.close()
 
 
 class ObjectStreamer(events.EventSource):
