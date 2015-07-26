@@ -1,5 +1,6 @@
 language : python
 python:
+    - "3.3"
     - "3.4"
 before_install:
     - export LD_LIBRARY_PATH="/usr/local/lib/"
@@ -10,6 +11,7 @@ before_install:
     - cd ..
 install:
     - pip install again
+    - pip install enum34
     - pip install pytest
 script: py.test -v
 #sudo: false #cant use new infra because 'sudo' is not currently supported
