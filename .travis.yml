@@ -1,0 +1,15 @@
+language : python
+python:
+    - "3.4"
+before_install:
+    - export LD_LIBRARY_PATH="/usr/local/lib/"
+    - sudo git clone https://github.com/lloyd/yajl.git
+    - cd yajl
+    - sudo ./configure
+    - sudo make install
+    - cd ..
+install:
+    - pip install again
+    - pip install pytest
+script: py.test -v
+#sudo: false #cant use new infra because 'sudo' is not currently supported
