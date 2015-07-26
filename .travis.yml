@@ -12,4 +12,4 @@ install:
     - pip install again
     - pip install pytest
 script: py.test -v
-sudo: false
+#sudo: false #cant use new infra because 'sudo' is not currently supported
