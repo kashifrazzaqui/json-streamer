@@ -13,4 +13,4 @@ before_install:
 install:
     - pip install again
     - pip install pytest
-script: sudo py.test
+script: py.test
