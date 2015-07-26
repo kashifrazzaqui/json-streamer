@@ -1,0 +1,12 @@
+language : python
+python:
+    - "3.3"
+    - "3.4"
+before_install:
+    - git clone git@github.com:lloyd/yajl.git
+    - cd yajl
+    - ./configure && make install
+install:
+    - pip install again
+    - pip install pytest
+script: py.test
