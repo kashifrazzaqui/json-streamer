@@ -3,6 +3,9 @@ sudo: required
 python:
     - "3.4"
 before_install:
+    - sudo apt-get update
+    - sudo apt-get upgrade
+    - sudo apt-get install cmake
     - git clone https://github.com/lloyd/yajl.git
     - cd yajl
     - sudo ./configure
@@ -11,4 +14,4 @@ before_install:
 install:
     - pip install again
     - pip install pytest
-script: py.test
+script: sudo py.test
