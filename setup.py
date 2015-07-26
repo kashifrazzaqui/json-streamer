@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='jsonstreamer',
       version='1.3.5',
@@ -9,5 +9,5 @@ setup(name='jsonstreamer',
                   'Also provides an ObjectStreamer that emits key-value pairs or array elements of the `root` json object/array.'
                   'Based on the fast c libary yajl',
       packages=['jsonstreamer', 'jsonstreamer.yajl'],
-      requires=['again']
+      install_requires=['again']
       )
