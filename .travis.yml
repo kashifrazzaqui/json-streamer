@@ -6,7 +6,8 @@ python:
 before_install:
     - git clone https://github.com/lloyd/yajl.git
     - cd yajl
-    - ./configure && make install
+    - sudo ./configure
+    - sudo make install
 install:
     - pip install again
     - pip install pytest
