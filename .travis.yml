@@ -1,6 +1,5 @@
 language : python
 python:
-    - "3.3"
     - "3.4"
 before_install:
     - export LD_LIBRARY_PATH="/usr/local/lib/"
