@@ -8,6 +8,7 @@ before_install:
     - cd yajl
     - sudo ./configure
     - sudo make install
+    - cd ..
 install:
     - pip install again
     - pip install pytest
