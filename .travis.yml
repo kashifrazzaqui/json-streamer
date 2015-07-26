@@ -4,8 +4,7 @@ python:
     - "3.4"
 before_install:
     - sudo apt-get update
-    - sudo apt-get upgrade
-    - sudo apt-get install cmake
+    - sudo apt-get -y install cmake
     - git clone https://github.com/lloyd/yajl.git
     - cd yajl
     - sudo ./configure
