@@ -1,7 +1,8 @@
 json-streamer [![Build Status](https://travis-ci.org/kashifrazzaqui/json-streamer.svg?branch=master)](https://travis-ci.org/kashifrazzaqui/json-streamer)
 =============
 jsonstreamer provides a SAX-like push parser via the JSONStreamer class and a 'object' parser via the
-ObjectStreamer class which emits top level entities in any JSON object. Based on the fast c libary 'yajl'
+ObjectStreamer class which emits top level entities in any JSON object. Based on the fast c libary 'yajl'.
+Great for parsing streaming json over a network as it comes in or json objects that are too large to hold in memory altogether.
 
 ### Dependencies
 
