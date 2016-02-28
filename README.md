@@ -14,6 +14,7 @@ Great for parsing streaming json over a network as it comes in or json objects t
 
     pip3 install jsonstreamer
 
+Also available at PyPi - https://pypi.python.org/pypi/jsonstreamer
     
 ### Example
 
