@@ -23,7 +23,10 @@ class JSONStreamerException(Exception):
         self._msg = msg
 
     def __str__(self):
-        return self._msg
+        if isinstance(self._msg, str):
+            return self._msg
+        else:
+            return self._msg.decode("utf-8")
 
 
 class JSONStreamer(events.EventSource, YajlListener):
