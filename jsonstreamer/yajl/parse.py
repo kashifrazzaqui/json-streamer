@@ -20,7 +20,7 @@ def load_lib():
     loads and return the yajl shared object lib
     :return: cdll object
     """
-    for each in '', '.so', '.dylib':
+    for each in '', '.so', '.dylib', '.so.2':
         yajlso = 'libyajl{}'.format(each)
         try:
             return cdll.LoadLibrary(yajlso)
