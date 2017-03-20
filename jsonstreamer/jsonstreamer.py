@@ -146,7 +146,7 @@ class JSONStreamer(events.EventSource, YajlListener):
 
     def on_number(self, ctx, value):
         ''' Since this is defined both integer and double callbacks are useless '''
-        value = float(value) if '.' in value else int(value)
+        value = int(value) if value.isdigit() else float(value)
         top = self._stack[-1]
         if top is JSONCompositeType.OBJECT:
             self.fire(JSONStreamer.VALUE_EVENT, value)
