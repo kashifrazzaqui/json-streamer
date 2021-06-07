@@ -233,4 +233,9 @@ m = MyClass()
 m.parse(json_object)
 ```
     
-    
+## Troubleshooting
+* If you get an `OSError('Yajl cannot be found.')` Please ensure that libyajl is available in the relevant directory.
+For example, on mac(osx) /usr/local/lib should have a "libyajl.dylib"
+Linux -> libyajl.so
+Windows -> yajl.dll
+
