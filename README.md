@@ -239,3 +239,9 @@ For example, on mac(osx) /usr/local/lib should have a "libyajl.dylib"
 Linux -> libyajl.so
 Windows -> yajl.dll
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=kashifrazzaqui/json-streamer&type=Date)](https://star-history.com/#kashifrazzaqui/json-streamer&Date)
+
+
+
