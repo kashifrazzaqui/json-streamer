@@ -77,8 +77,15 @@ safety and usability features.
 
 - **Breaking Changes**:
   - Removed `again` library dependency
+  - Replaced `ctypes` with `cffi` for C bindings (more robust, better error handling)
   - Minimum Python version: 3.8 (was 3.4)
   - Version bumped to 2.0.0 due to dependency changes
+
+- **Implementation Improvements**:
+  - Migrated from ctypes to cffi for yajl bindings
+  - Better callback management (prevents garbage collection issues)
+  - Improved error messages from C library
+  - Bundled wheels with yajl included (no system dependencies!)
 
 - **API Enhancements** (Backward Compatible):
   - `JSONStreamer()` now accepts `buffer_size`, `max_depth`, `max_string_size` parameters
@@ -104,6 +111,20 @@ safety and usability features.
   - GitHub Actions workflow configuration
   - Pre-configured for multi-Python version testing
   - Coverage reporting with pytest-cov
+
+### Installation
+
+Now **even easier** - no system dependencies required!
+
+```bash
+# v2.0 - just pip install, yajl bundled in wheel!
+pip install jsonstreamer
+
+# or with uv
+uv add jsonstreamer
+```
+
+No need to install libyajl separately anymore (for wheel installations).
 
 ### Migration Guide
 

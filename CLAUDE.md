@@ -11,7 +11,8 @@ json-streamer is a Python library that provides SAX-like streaming JSON parsing 
 1. **JSONStreamer** (`jsonstreamer/jsonstreamer.py`): SAX-like push parser that emits low-level events (object_start, array_start, key, value, element, etc.) as JSON tokens are parsed
 2. **ObjectStreamer** (`jsonstreamer/jsonstreamer.py`): Higher-level parser built on top of JSONStreamer that emits complete top-level key-value pairs or array elements from the root JSON object/array
 3. **Tape** (`jsonstreamer/tape.py`): File-like buffer object that allows writing to the end while reading from the beginning - enables streaming JSON parsing
-4. **YajlParser** (`jsonstreamer/yajl/parse.py`): C bindings to the yajl library using ctypes
+4. **YajlParser** (`jsonstreamer/yajl/parse.py`): CFFI-based bindings to the yajl library (v2.0+, was ctypes in v1.x)
+5. **EventSource** (`jsonstreamer/events.py`): Built-in event system replacing the `again` library
 
 ### Event System
 
@@ -82,8 +83,14 @@ cat some_file.json | python -m jsonstreamer.jsonstreamer
 
 ## Dependencies
 
-- **yajl C library**: Must be installed via system package manager (libyajl.so, libyajl.dylib, or yajl.dll)
-- **again**: Python event framework library for event listener boilerplate
+- **cffi**: Python Foreign Function Interface for calling C code
+- **yajl C library** (v2.0+):
+  - Bundled in pre-built wheels (pip install just works!)
+  - Or install via system package manager for source builds:
+    - Ubuntu/Debian: `sudo apt-get install libyajl-dev`
+    - macOS: `brew install yajl`
+    - Fedora/RHEL: `sudo yum install yajl-devel`
+    - Windows: Use pre-built wheel or build from source with cmake
 
 ## Version 2.0 Changes (2025)
 
@@ -102,6 +109,15 @@ cat some_file.json | python -m jsonstreamer.jsonstreamer
 - Fixed `type()` vs `isinstance()` usage
 - Fixed negative number parsing (e.g., `-123` now correctly parses as `int`, not `float`)
 - Improved exception handling for nested exceptions
+
+### Technical Changes
+
+- **Replaced ctypes with cffi**:
+  - More robust callback management
+  - Better error messages from C library
+  - Prevents callback garbage collection issues
+  - Enables bundled wheel distribution
+  - File: `jsonstreamer/yajl/yajl_cffi.py` (new), `jsonstreamer/yajl/parse.py` (rewritten)
 
 ### API Additions (Backward Compatible)
 
