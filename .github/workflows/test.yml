@@ -43,10 +43,19 @@ jobs:
         cd C:\yajl
         cmake .
         cmake --build . --config Release
-        # Add to PATH
-        echo "C:\yajl\Release" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
-        # Also copy DLL to a standard location
-        Copy-Item "C:\yajl\Release\yajl.dll" "C:\Windows\System32\" -Force
+
+    - name: Setup yajl PATH (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        echo "C:\yajl\Release" >> $env:GITHUB_PATH
+        # Verify the DLL exists
+        if (Test-Path "C:\yajl\Release\yajl.dll") {
+          Write-Host "✓ yajl.dll found at C:\yajl\Release\yajl.dll"
+        } else {
+          Write-Error "✗ yajl.dll not found!"
+          exit 1
+        }
 
     - name: Install uv
       uses: astral-sh/setup-uv@v5
