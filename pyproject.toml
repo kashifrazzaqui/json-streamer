@@ -82,7 +82,12 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20", "SIM"]
-ignore = []
+ignore = [
+    "N818",  # Exception naming - JSONStreamerException is fine
+    "N803",  # Argument casing - matches yajl C API (boolVal, stringVal, etc)
+    "T201",  # print() in run() function and demos is intentional
+    "B027",  # Empty methods in ABC are hooks, not abstract
+]
 
 [tool.black]
 line-length = 120

@@ -3,7 +3,10 @@ from functools import wraps
 
 import jsonstreamer
 
-json_file_name = lambda test_fn: "tests/json_files/" + test_fn.__name__[5:] + ".json"
+
+def json_file_name(test_fn):
+    """Get JSON file name from test function name."""
+    return "tests/json_files/" + test_fn.__name__[5:] + ".json"
 
 
 def load_test_data(func):
@@ -33,8 +36,8 @@ class JSONStreamerTests(unittest.TestCase):
         # print('Asserting event_name: {} , value : {}'.format(event_name,value))
         try:
             e, v = self._assertions.pop(0)
-        except IndexError:
-            raise AssertionError("not enough asserts")
+        except IndexError as err:
+            raise AssertionError("not enough asserts") from err
         self.assertEqual(event_name, e)
         self.assertEqual(value, v)
 
@@ -70,8 +73,8 @@ class ObjectStreamerTests(unittest.TestCase):
         # print('\nAsserting event_name: {} , value : {}'.format(event_name, value))
         try:
             expected_event, expected_value = self._assertions.pop(0)
-        except IndexError:
-            raise AssertionError("not enough asserts")
+        except IndexError as err:
+            raise AssertionError("not enough asserts") from err
         self.assertEqual(event_name, expected_event)
         self._assert_value(expected_value, value)
 
@@ -194,8 +197,8 @@ class ObjectStreamerListenerTests(unittest.TestCase):
         def _on_element(value):
             try:
                 expected_value = self._assertions.pop(0)
-            except IndexError:
-                raise AssertionError("not enough asserts")
+            except IndexError as err:
+                raise AssertionError("not enough asserts") from err
 
             self.assertEqual(expected_value, value)
 
@@ -214,8 +217,8 @@ class ObjectStreamerListenerTests(unittest.TestCase):
         def _on_element(value):
             try:
                 expected_value = self._assertions.pop(0)
-            except IndexError:
-                raise AssertionError("not enough asserts")
+            except IndexError as err:
+                raise AssertionError("not enough asserts") from err
 
             self.assertEqual(expected_value, value)
 

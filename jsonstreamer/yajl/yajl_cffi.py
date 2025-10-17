@@ -154,4 +154,4 @@ except OSError:
         "  - Ubuntu/Debian: sudo apt-get install libyajl-dev\n"
         "  - macOS: brew install yajl\n"
         "  - Fedora/RHEL: sudo yum install yajl-devel"
-    )
+    ) from None

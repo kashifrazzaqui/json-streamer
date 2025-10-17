@@ -88,7 +88,7 @@ class JSONStreamer(events.EventSource, YajlListener):
             max_depth (int, optional): Maximum nesting depth allowed. None means unlimited. (default: None)
             max_string_size (int, optional): Maximum size of individual strings. None means unlimited. (default: None)
         """
-        super(JSONStreamer, self).__init__()
+        super().__init__()
         self._file_like = Tape()
         self._stack = []
         self._pending_value = False
@@ -179,10 +179,7 @@ class JSONStreamer(events.EventSource, YajlListener):
         # Handle negative numbers and decimals correctly
         try:
             # Try int first (handles negative integers like "-123")
-            if "." not in value and "e" not in value.lower():
-                value = int(value)
-            else:
-                value = float(value)
+            value = int(value) if "." not in value and "e" not in value.lower() else float(value)
         except ValueError:
             # Fallback to float for scientific notation or other edge cases
             value = float(value)
@@ -224,7 +221,7 @@ class JSONStreamer(events.EventSource, YajlListener):
         try:
             self._parser.parse(self._file_like)
         except YajlError as ye:
-            raise JSONStreamerException(ye.value)
+            raise JSONStreamerException(ye.value) from ye
 
     def close(self) -> None:
         """Close the streamer and free resources.
@@ -294,7 +291,7 @@ class ObjectStreamer(events.EventSource):
             max_depth (int, optional): Maximum nesting depth allowed. None means unlimited. (default: None)
             max_string_size (int, optional): Maximum size of individual strings. None means unlimited. (default: None)
         """
-        super(ObjectStreamer, self).__init__()
+        super().__init__()
         self._streamer = JSONStreamer(buffer_size=buffer_size, max_depth=max_depth, max_string_size=max_string_size)
         self._streamer.auto_listen(self)
 
@@ -352,7 +349,7 @@ class ObjectStreamer(events.EventSource):
             self._root = JSONCompositeType.ARRAY
             self.fire("array_stream_start")
         else:
-            self._obj_stack.append(list())
+            self._obj_stack.append([])
 
     def _on_array_end(self):
         if len(self._obj_stack) > 0:
@@ -389,7 +386,7 @@ class ObjectStreamer(events.EventSource):
             self._streamer.consume(data)
         except YajlError as ye:
             print(ye.value)
-            raise JSONStreamerException(ye.value)
+            raise JSONStreamerException(ye.value) from ye
 
     def close(self):
         """Closes the object streamer"""
