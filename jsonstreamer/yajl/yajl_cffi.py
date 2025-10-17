@@ -129,12 +129,14 @@ def load_yajl_library():
 
     # On macOS, also try explicit paths where brew installs
     if system == "Darwin":
-        library_names.extend([
-            "/opt/homebrew/lib/libyajl.dylib",  # Apple Silicon
-            "/opt/homebrew/lib/libyajl.2.dylib",
-            "/usr/local/lib/libyajl.dylib",  # Intel Mac
-            "/usr/local/lib/libyajl.2.dylib",
-        ])
+        library_names.extend(
+            [
+                "/opt/homebrew/lib/libyajl.dylib",  # Apple Silicon
+                "/opt/homebrew/lib/libyajl.2.dylib",
+                "/usr/local/lib/libyajl.dylib",  # Intel Mac
+                "/usr/local/lib/libyajl.2.dylib",
+            ]
+        )
 
     last_error = None
     for lib_name in library_names:
