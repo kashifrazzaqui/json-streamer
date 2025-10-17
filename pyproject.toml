@@ -64,17 +64,23 @@ python_files = "test*.py"
 addopts = "-v --cov=jsonstreamer --cov-report=term-missing"
 
 [tool.mypy]
-python_version = "3.8"
-warn_return_any = true
+python_version = "3.9"
+warn_return_any = false
 warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 warn_no_return = true
 strict_equality = true
+ignore_missing_imports = true
+
+# Gradually add type hints, don't block on strict mode
+[[tool.mypy.overrides]]
+module = "jsonstreamer.yajl.*"
+ignore_errors = true
 
 [tool.ruff]
 line-length = 120

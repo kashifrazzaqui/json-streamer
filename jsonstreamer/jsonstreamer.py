@@ -13,7 +13,7 @@ from . import events
 from .tape import Tape
 from .yajl.parse import YajlError, YajlListener, YajlParser
 
-JSONLiteralType = Enum("JSONValueType", "STRING NUMBER BOOLEAN NULL")
+JSONLiteralType = Enum("JSONLiteralType", "STRING NUMBER BOOLEAN NULL")
 JSONCompositeType = Enum("JSONCompositeType", "OBJECT ARRAY")
 
 
