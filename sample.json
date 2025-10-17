@@ -1,0 +1,18 @@
+{
+  "name": "json-streamer v2.0",
+  "version": "2.0.0",
+  "features": [
+    "streaming parsing",
+    "context managers",
+    "safety limits"
+  ],
+  "bugs_fixed": 3,
+  "tests": 25,
+  "coverage": 0.83,
+  "compatible": true,
+  "metadata": {
+    "author": "Kashif Razzaqui",
+    "python_versions": ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"],
+    "negative_numbers": [-123, -456, -78.9]
+  }
+}
