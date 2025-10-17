@@ -85,6 +85,7 @@ ignore_errors = true
 [tool.ruff]
 line-length = 120
 target-version = "py38"
+exclude = ["README.ipynb", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20", "SIM"]
