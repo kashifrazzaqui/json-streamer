@@ -39,22 +39,35 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
+        # Clone yajl
         git clone https://github.com/lloyd/yajl.git C:\yajl
         cd C:\yajl
-        cmake .
+
+        # Configure and build with cmake
+        cmake -G "Visual Studio 17 2022" -A x64 .
         cmake --build . --config Release
 
-    - name: Setup yajl PATH (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
+        # Find the DLL (it might be in different locations)
+        Get-ChildItem -Path C:\yajl -Recurse -Filter "yajl.dll" | ForEach-Object {
+          Write-Host "Found DLL at: $($_.FullName)"
+        }
+
+        # Add Release directory to PATH
         echo "C:\yajl\Release" >> $env:GITHUB_PATH
-        # Verify the DLL exists
+
+        # Verify
         if (Test-Path "C:\yajl\Release\yajl.dll") {
-          Write-Host "✓ yajl.dll found at C:\yajl\Release\yajl.dll"
+          Write-Host "✓ yajl.dll found and ready"
         } else {
-          Write-Error "✗ yajl.dll not found!"
-          exit 1
+          Write-Host "⚠ yajl.dll not in Release folder, searching..."
+          $dll = Get-ChildItem -Path C:\yajl -Recurse -Filter "yajl.dll" | Select-Object -First 1
+          if ($dll) {
+            Write-Host "Found DLL at: $($dll.FullName)"
+            echo "$($dll.DirectoryName)" >> $env:GITHUB_PATH
+          } else {
+            Write-Error "✗ yajl.dll not found anywhere!"
+            exit 1
+          }
         }
 
     - name: Install uv
